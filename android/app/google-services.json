@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "775925007414",
+    "project_id": "prowash-3afc5",
+    "storage_bucket": "prowash-3afc5.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:775925007414:android:2c727a273753d59f1f0497",
+        "android_client_info": {
+          "package_name": "com.example.prowash"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC2gQQdsM7B9FSytd4saTQT19ynRBFJJAc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
