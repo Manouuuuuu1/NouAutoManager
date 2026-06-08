@@ -39,6 +39,10 @@ class FirestoreService {
     await _db.collection('lavages').doc(id).update({'statut': statut});
   }
 
+  Future<void> modifierLavage(String id, Map<String, dynamic> data) async {
+    await _db.collection('lavages').doc(id).update(data);
+  }
+
   Future<void> supprimerLavage(String id) async {
     await _db.collection('lavages').doc(id).delete();
   }

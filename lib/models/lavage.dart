@@ -4,8 +4,9 @@ class Lavage {
   final String client;
   final String service;
   final int prix;
-  final String statut; // En attente, En cours, Terminé
+  final String statut;
   final String typeVehicule;
+  final String laveur;
   final DateTime dateHeure;
 
   Lavage({
@@ -17,6 +18,7 @@ class Lavage {
     required this.statut,
     required this.typeVehicule,
     required this.dateHeure,
+    this.laveur = '',
   });
 
   Map<String, dynamic> toMap() {
@@ -27,6 +29,7 @@ class Lavage {
       'prix': prix,
       'statut': statut,
       'typeVehicule': typeVehicule,
+      'laveur': laveur,
       'dateHeure': dateHeure.toIso8601String(),
     };
   }
@@ -40,6 +43,7 @@ class Lavage {
       prix: map['prix'] ?? 0,
       statut: map['statut'] ?? 'En attente',
       typeVehicule: map['typeVehicule'] ?? 'Voiture',
+      laveur: map['laveur'] ?? '',
       dateHeure: DateTime.parse(map['dateHeure']),
     );
   }

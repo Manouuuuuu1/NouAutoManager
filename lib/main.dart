@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'firebase_options.dart';
 import 'screens/dashboard_screen.dart';
 import 'screens/historique_screen.dart';
+import 'screens/laveurs_screen.dart';
 import 'screens/login_screen.dart';
 
 void main() async {
@@ -34,9 +35,7 @@ class AutoWashApp extends StatelessWidget {
               body: Center(child: CircularProgressIndicator()),
             );
           }
-          if (snapshot.hasData) {
-            return const MainScreen();
-          }
+          if (snapshot.hasData) return const MainScreen();
           return const LoginScreen();
         },
       ),
@@ -57,6 +56,7 @@ class _MainScreenState extends State<MainScreen> {
   final List<Widget> _screens = const [
     DashboardScreen(),
     HistoriqueScreen(),
+    LaveursScreen(),
   ];
 
   @override
@@ -77,6 +77,11 @@ class _MainScreenState extends State<MainScreen> {
             icon: Icon(Icons.history_outlined),
             activeIcon: Icon(Icons.history),
             label: 'Historique',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.people_outline),
+            activeIcon: Icon(Icons.people),
+            label: 'Laveurs',
           ),
         ],
       ),

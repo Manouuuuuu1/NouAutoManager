@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../models/lavage.dart';
 import '../services/firestore_service.dart';
 
@@ -22,6 +22,40 @@ class _HistoriqueScreenState extends State<HistoriqueScreen> {
     'Cire & polish',
   ];
 
+  final List<String> _laveurs = [
+    'Koné Mamadou',
+    'Traoré Seydou',
+    'Bamba Inza',
+    'Coulibaly Adama',
+  ];
+
+  final Map<String, Map<String, int>> _prix = {
+    'Lavage simple': {'Voiture': 2500, 'Moto': 1000, 'SUV / Pickup': 3500},
+    'Lavage complet': {'Voiture': 4000, 'Moto': 1500, 'SUV / Pickup': 6000},
+    'Lavage + intérieur': {'Voiture': 6000, 'Moto': 2000, 'SUV / Pickup': 9000},
+    'Cire & polish': {'Voiture': 10000, 'Moto': 0, 'SUV / Pickup': 15000},
+  };
+
+  void _deconnecter() async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Déconnexion'),
+        content: const Text('Veux-tu vraiment te déconnecter ?'),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Annuler')),
+          TextButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('Déconnecter',
+                  style: TextStyle(color: Colors.red))),
+        ],
+      ),
+    );
+    if (confirm == true) await FirebaseAuth.instance.signOut();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -32,9 +66,16 @@ class _HistoriqueScreenState extends State<HistoriqueScreen> {
         backgroundColor: const Color(0xFF185FA5),
         foregroundColor: Colors.white,
         elevation: 0,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.logout),
+            tooltip: 'Déconnexion',
+            onPressed: _deconnecter,
+          ),
+        ],
       ),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => _showAjouterLavage(context),
+        onPressed: () => _showFormulaireLavage(context),
         backgroundColor: const Color(0xFF185FA5),
         foregroundColor: Colors.white,
         icon: const Icon(Icons.add),
@@ -59,9 +100,7 @@ class _HistoriqueScreenState extends State<HistoriqueScreen> {
                     margin: const EdgeInsets.only(right: 8),
                     padding: const EdgeInsets.symmetric(horizontal: 14),
                     decoration: BoxDecoration(
-                      color: selected
-                          ? const Color(0xFF185FA5)
-                          : Colors.white,
+                      color: selected ? const Color(0xFF185FA5) : Colors.white,
                       borderRadius: BorderRadius.circular(99),
                       border: Border.all(
                         color: selected
@@ -74,9 +113,8 @@ class _HistoriqueScreenState extends State<HistoriqueScreen> {
                       style: TextStyle(
                         fontSize: 12,
                         color: selected ? Colors.white : Colors.grey.shade700,
-                        fontWeight: selected
-                            ? FontWeight.w600
-                            : FontWeight.normal,
+                        fontWeight:
+                            selected ? FontWeight.w600 : FontWeight.normal,
                       ),
                     ),
                   ),
@@ -114,8 +152,13 @@ class _HistoriqueScreenState extends State<HistoriqueScreen> {
                 return ListView.builder(
                   padding: const EdgeInsets.all(16),
                   itemCount: lavages.length,
-                  itemBuilder: (context, i) =>
-                      _LavageItem(lavage: lavages[i], service: _service),
+                  itemBuilder: (context, i) => _LavageItem(
+                    lavage: lavages[i],
+                    service: _service,
+                    onModifier: () =>
+                        _showFormulaireLavage(context, lavage: lavages[i]),
+                    onSupprimer: () => _confirmerSuppression(lavages[i].id),
+                  ),
                 );
               },
             ),
@@ -125,18 +168,35 @@ class _HistoriqueScreenState extends State<HistoriqueScreen> {
     );
   }
 
-  void _showAjouterLavage(BuildContext context) {
-    final plaqueCtrl = TextEditingController();
-    final clientCtrl = TextEditingController();
-    String service = 'Lavage simple';
-    String typeVehicule = 'Voiture';
+  void _confirmerSuppression(String id) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Supprimer ce lavage ?'),
+        content: const Text('Cette action est irréversible.'),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Annuler')),
+          TextButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('Supprimer',
+                  style: TextStyle(color: Colors.red))),
+        ],
+      ),
+    );
+    if (confirm == true) await _service.supprimerLavage(id);
+  }
 
-    final Map<String, Map<String, int>> prix = {
-      'Lavage simple': {'Voiture': 2500, 'Moto': 1000, 'SUV / Pickup': 3500},
-      'Lavage complet': {'Voiture': 4000, 'Moto': 1500, 'SUV / Pickup': 6000},
-      'Lavage + intérieur': {'Voiture': 6000, 'Moto': 2000, 'SUV / Pickup': 9000},
-      'Cire & polish': {'Voiture': 10000, 'Moto': 0, 'SUV / Pickup': 15000},
-    };
+  void _showFormulaireLavage(BuildContext context, {Lavage? lavage}) {
+    final plaqueCtrl =
+        TextEditingController(text: lavage?.plaque ?? '');
+    final clientCtrl =
+        TextEditingController(text: lavage?.client ?? '');
+    String service = lavage?.service ?? 'Lavage simple';
+    String typeVehicule = lavage?.typeVehicule ?? 'Voiture';
+    String laveur = lavage?.laveur ?? _laveurs.first;
+    final bool estModification = lavage != null;
 
     showModalBottomSheet(
       context: context,
@@ -146,114 +206,157 @@ class _HistoriqueScreenState extends State<HistoriqueScreen> {
       ),
       builder: (context) => StatefulBuilder(
         builder: (context, setModalState) {
-          final prixAuto = prix[service]?[typeVehicule] ?? 0;
+          final prixAuto = _prix[service]?[typeVehicule] ?? 0;
           return Padding(
             padding: EdgeInsets.only(
               left: 20, right: 20, top: 20,
               bottom: MediaQuery.of(context).viewInsets.bottom + 20,
             ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text('Nouveau lavage',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
-                const SizedBox(height: 16),
-                TextField(
-                  controller: plaqueCtrl,
-                  decoration: const InputDecoration(
-                    labelText: 'Plaque du véhicule',
-                    hintText: 'ex: CI-1234-A',
-                    border: OutlineInputBorder(),
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    estModification ? 'Modifier le lavage' : 'Nouveau lavage',
+                    style: const TextStyle(
+                        fontSize: 18, fontWeight: FontWeight.w600),
                   ),
-                ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: clientCtrl,
-                  decoration: const InputDecoration(
-                    labelText: 'Nom du client',
-                    border: OutlineInputBorder(),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                DropdownButtonFormField<String>(
-                  value: service,
-                  decoration: const InputDecoration(
-                    labelText: 'Service',
-                    border: OutlineInputBorder(),
-                  ),
-                  items: prix.keys
-                      .map((s) => DropdownMenuItem(value: s, child: Text(s)))
-                      .toList(),
-                  onChanged: (v) => setModalState(() => service = v!),
-                ),
-                const SizedBox(height: 12),
-                DropdownButtonFormField<String>(
-                  value: typeVehicule,
-                  decoration: const InputDecoration(
-                    labelText: 'Type de véhicule',
-                    border: OutlineInputBorder(),
-                  ),
-                  items: ['Voiture', 'Moto', 'SUV / Pickup']
-                      .map((t) => DropdownMenuItem(value: t, child: Text(t)))
-                      .toList(),
-                  onChanged: (v) => setModalState(() => typeVehicule = v!),
-                ),
-                const SizedBox(height: 12),
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFE6F1FB),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Text('Prix calculé automatiquement',
-                          style: TextStyle(color: Color(0xFF185FA5), fontSize: 13)),
-                      Text('$prixAuto F CFA',
-                          style: const TextStyle(
-                              color: Color(0xFF185FA5),
-                              fontWeight: FontWeight.w600,
-                              fontSize: 15)),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 16),
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF185FA5),
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10)),
+                  const SizedBox(height: 16),
+                  TextField(
+                    controller: plaqueCtrl,
+                    decoration: const InputDecoration(
+                      labelText: 'Plaque du véhicule',
+                      hintText: 'ex: CI-1234-A',
+                      border: OutlineInputBorder(),
                     ),
-                    onPressed: () async {
-                      if (plaqueCtrl.text.isEmpty || clientCtrl.text.isEmpty) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Plaque et client requis')),
-                        );
-                        return;
-                      }
-                      await _service.ajouterLavage(Lavage(
-                        id: '',
-                        plaque: plaqueCtrl.text.trim().toUpperCase(),
-                        client: clientCtrl.text.trim(),
-                        service: service,
-                        prix: prixAuto,
-                        statut: 'En attente',
-                        typeVehicule: typeVehicule,
-                        dateHeure: DateTime.now(),
-                      ));
-                      if (context.mounted) Navigator.pop(context);
-                    },
-                    child: const Text('Enregistrer',
-                        style: TextStyle(fontSize: 15)),
                   ),
-                ),
-              ],
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: clientCtrl,
+                    decoration: const InputDecoration(
+                      labelText: 'Nom du client',
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  DropdownButtonFormField<String>(
+                    initialValue: service,
+                    decoration: const InputDecoration(
+                      labelText: 'Service',
+                      border: OutlineInputBorder(),
+                    ),
+                    items: _prix.keys
+                        .map((s) =>
+                            DropdownMenuItem(value: s, child: Text(s)))
+                        .toList(),
+                    onChanged: (v) =>
+                        setModalState(() => service = v!),
+                  ),
+                  const SizedBox(height: 12),
+                  DropdownButtonFormField<String>(
+                    initialValue: typeVehicule,
+                    decoration: const InputDecoration(
+                      labelText: 'Type de véhicule',
+                      border: OutlineInputBorder(),
+                    ),
+                    items: ['Voiture', 'Moto', 'SUV / Pickup']
+                        .map((t) =>
+                            DropdownMenuItem(value: t, child: Text(t)))
+                        .toList(),
+                    onChanged: (v) =>
+                        setModalState(() => typeVehicule = v!),
+                  ),
+                  const SizedBox(height: 12),
+                  DropdownButtonFormField<String>(
+                    initialValue: laveur,
+                    decoration: const InputDecoration(
+                      labelText: 'Nom du laveur',
+                      border: OutlineInputBorder(),
+                      prefixIcon: Icon(Icons.person_outline),
+                    ),
+                    items: _laveurs
+                        .map((l) =>
+                            DropdownMenuItem(value: l, child: Text(l)))
+                        .toList(),
+                    onChanged: (v) =>
+                        setModalState(() => laveur = v!),
+                  ),
+                  const SizedBox(height: 12),
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFE6F1FB),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text('Prix calculé automatiquement',
+                            style: TextStyle(
+                                color: Color(0xFF185FA5), fontSize: 13)),
+                        Text('$prixAuto F CFA',
+                            style: const TextStyle(
+                                color: Color(0xFF185FA5),
+                                fontWeight: FontWeight.w600,
+                                fontSize: 15)),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF185FA5),
+                        foregroundColor: Colors.white,
+                        padding:
+                            const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10)),
+                      ),
+                      onPressed: () async {
+                        if (plaqueCtrl.text.isEmpty ||
+                            clientCtrl.text.isEmpty) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                                content:
+                                    Text('Plaque et client requis')),
+                          );
+                          return;
+                        }
+                        if (estModification) {
+                          await _service.modifierLavage(lavage.id, {
+                            'plaque': plaqueCtrl.text.trim().toUpperCase(),
+                            'client': clientCtrl.text.trim(),
+                            'service': service,
+                            'typeVehicule': typeVehicule,
+                            'laveur': laveur,
+                            'prix': prixAuto,
+                          });
+                        } else {
+                          await _service.ajouterLavage(Lavage(
+                            id: '',
+                            plaque: plaqueCtrl.text.trim().toUpperCase(),
+                            client: clientCtrl.text.trim(),
+                            service: service,
+                            prix: prixAuto,
+                            statut: 'En attente',
+                            typeVehicule: typeVehicule,
+                            laveur: laveur,
+                            dateHeure: DateTime.now(),
+                          ));
+                        }
+                        if (context.mounted) Navigator.pop(context);
+                      },
+                      child: Text(
+                        estModification ? 'Enregistrer les modifications' : 'Enregistrer',
+                        style: const TextStyle(fontSize: 15),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
           );
         },
@@ -265,7 +368,15 @@ class _HistoriqueScreenState extends State<HistoriqueScreen> {
 class _LavageItem extends StatelessWidget {
   final Lavage lavage;
   final FirestoreService service;
-  const _LavageItem({required this.lavage, required this.service});
+  final VoidCallback onModifier;
+  final VoidCallback onSupprimer;
+
+  const _LavageItem({
+    required this.lavage,
+    required this.service,
+    required this.onModifier,
+    required this.onSupprimer,
+  });
 
   Color get _statusColor {
     switch (lavage.statut) {
@@ -275,7 +386,7 @@ class _LavageItem extends StatelessWidget {
     }
   }
 
-  void _changerStatut(BuildContext context) async {
+  void _changerStatut() async {
     final statuts = ['En attente', 'En cours', 'Terminé'];
     final idx = statuts.indexOf(lavage.statut);
     final next = statuts[(idx + 1) % statuts.length];
@@ -292,56 +403,105 @@ class _LavageItem extends StatelessWidget {
         borderRadius: BorderRadius.circular(10),
         border: Border.all(color: Colors.grey.shade200),
       ),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            width: 42, height: 42,
-            decoration: BoxDecoration(
-              color: const Color(0xFFE6F1FB),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: const Icon(Icons.directions_car,
-                color: Color(0xFF185FA5), size: 20),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(lavage.plaque,
-                    style: const TextStyle(
-                        fontWeight: FontWeight.w600, fontSize: 14)),
-                Text('${lavage.service} · ${lavage.client}',
-                    style: const TextStyle(color: Colors.grey, fontSize: 12)),
-                Text(
-                  '${lavage.dateHeure.day}/${lavage.dateHeure.month}/${lavage.dateHeure.year} ${lavage.dateHeure.hour}:${lavage.dateHeure.minute.toString().padLeft(2, '0')}',
-                  style: const TextStyle(color: Colors.grey, fontSize: 11),
-                ),
-              ],
-            ),
-          ),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
+          Row(
             children: [
-              Text('${lavage.prix} F',
-                  style: const TextStyle(
-                      fontWeight: FontWeight.w600, fontSize: 13)),
-              const SizedBox(height: 4),
-              GestureDetector(
-                onTap: () => _changerStatut(context),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 8, vertical: 3),
-                  decoration: BoxDecoration(
-                    color: _statusColor.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(99),
-                    border: Border.all(
-                        color: _statusColor.withOpacity(0.3)),
-                  ),
-                  child: Text(lavage.statut,
-                      style: TextStyle(
-                          color: _statusColor, fontSize: 11)),
+              Container(
+                width: 42, height: 42,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFE6F1FB),
+                  borderRadius: BorderRadius.circular(8),
                 ),
+                child: const Icon(Icons.directions_car,
+                    color: Color(0xFF185FA5), size: 20),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(lavage.plaque,
+                        style: const TextStyle(
+                            fontWeight: FontWeight.w600, fontSize: 14)),
+                    Text('${lavage.service} · ${lavage.client}',
+                        style: const TextStyle(
+                            color: Colors.grey, fontSize: 12)),
+                    if (lavage.laveur.isNotEmpty)
+                      Text('Laveur : ${lavage.laveur}',
+                          style: const TextStyle(
+                              color: Colors.grey, fontSize: 11)),
+                  ],
+                ),
+              ),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text('${lavage.prix} F',
+                      style: const TextStyle(
+                          fontWeight: FontWeight.w600, fontSize: 13)),
+                  const SizedBox(height: 4),
+                  GestureDetector(
+                    onTap: _changerStatut,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 3),
+                      decoration: BoxDecoration(
+                        color: _statusColor.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(99),
+                        border: Border.all(
+                            color: _statusColor.withValues(alpha: 0.3)),
+                      ),
+                      child: Text(lavage.statut,
+                          style: TextStyle(
+                              color: _statusColor, fontSize: 11)),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                '${lavage.dateHeure.day}/${lavage.dateHeure.month}/${lavage.dateHeure.year} ${lavage.dateHeure.hour}:${lavage.dateHeure.minute.toString().padLeft(2, '0')}',
+                style: const TextStyle(color: Colors.grey, fontSize: 11),
+              ),
+              Row(
+                children: [
+                  GestureDetector(
+                    onTap: onModifier,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFE6F1FB),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: const Text('Modifier',
+                          style: TextStyle(
+                              color: Color(0xFF185FA5), fontSize: 12)),
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  GestureDetector(
+                    onTap: onSupprimer,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFFCEBEB),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: const Text('Supprimer',
+                          style: TextStyle(
+                              color: Color(0xFFA32D2D), fontSize: 12)),
+                    ),
+                  ),
+                ],
               ),
             ],
           ),

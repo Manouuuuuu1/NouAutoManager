@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/lavage.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class DashboardScreen extends StatelessWidget {
   const DashboardScreen({super.key});
@@ -10,13 +11,23 @@ class DashboardScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: const Color(0xFFF5F5F5),
       appBar: AppBar(
-        title: const Text('AutoWash',
-            style: TextStyle(fontWeight: FontWeight.w600)),
-        backgroundColor: const Color(0xFF185FA5),
-        foregroundColor: Colors.white,
-        elevation: 0,
-      ),
-      body: StreamBuilder<QuerySnapshot>(
+  title: const Text('AutoWash',
+      style: TextStyle(fontWeight: FontWeight.w600)),
+  backgroundColor: const Color(0xFF185FA5),
+  foregroundColor: Colors.white,
+  elevation: 0,
+  actions: [
+    IconButton(
+      icon: const Icon(Icons.logout),
+      tooltip: 'Déconnexion',
+      onPressed: () async {
+        await FirebaseAuth.instance.signOut();
+      },
+    ),
+  ],
+),
+
+            body: StreamBuilder<QuerySnapshot>(
         stream: FirebaseFirestore.instance
             .collection('lavages')
             .orderBy('dateHeure', descending: true)
@@ -208,7 +219,7 @@ class _LavageCard extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                 decoration: BoxDecoration(
-                  color: _statusColor.withOpacity(0.1),
+                  color: _statusColor.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(99),
                 ),
                 child: Text(lavage.statut,

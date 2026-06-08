@@ -1,0 +1,9 @@
+.dart_tool/
+.build/
+.packages
+.idea/
+.vscode/
+*.iml
+build/
+ios/Pods/
+ios/Flutter/Flutter.framework
