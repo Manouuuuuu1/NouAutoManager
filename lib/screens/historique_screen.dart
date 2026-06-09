@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../models/lavage.dart';
+import '../models/laveur.dart';
 import '../services/firestore_service.dart';
-import 'package:prowash/services/superviseur_service.dart';
+import '../services/superviseur_service.dart';
 
 class HistoriqueScreen extends StatefulWidget {
   const HistoriqueScreen({super.key});
@@ -15,10 +16,22 @@ class _HistoriqueScreenState extends State<HistoriqueScreen> {
   final FirestoreService _service = FirestoreService();
   String _filtreService = '';
 
-  // ── MÉTHODE PIN SUPERVISEUR ────────────────────────
-  Future<bool> _verifierSuperviseur() async {
-    if (SuperviseurService.estSuperviseur) return true;
+  final List<String> _services = [
+    'Tous',
+    'Lavage simple',
+    'Lavage complet',
+    'Lavage + intérieur',
+    'Cire & polish',
+  ];
 
+  final Map<String, Map<String, int>> _prix = {
+    'Lavage simple': {'Voiture': 2500, 'Moto': 1000, 'SUV / Pickup': 3500},
+    'Lavage complet': {'Voiture': 4000, 'Moto': 1500, 'SUV / Pickup': 6000},
+    'Lavage + intérieur': {'Voiture': 6000, 'Moto': 2000, 'SUV / Pickup': 9000},
+    'Cire & polish': {'Voiture': 10000, 'Moto': 0, 'SUV / Pickup': 15000},
+  };
+
+  Future<bool> _verifierSuperviseur() async {
     final pinCtrl = TextEditingController();
     bool? resultat = await showDialog<bool>(
       context: context,
@@ -55,182 +68,19 @@ class _HistoriqueScreenState extends State<HistoriqueScreen> {
         ],
       ),
     );
-
     if (resultat == true) {
       final valide = await SuperviseurService.verifierPin(pinCtrl.text);
       if (!valide && context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Code PIN incorrect'),
-            backgroundColor: Colors.red,
-          ),
+              content: Text('Code PIN incorrect'),
+              backgroundColor: Colors.red),
         );
       }
+      SuperviseurService.seDeconnecter();
       return valide;
     }
     return false;
-  }
-  // ──────────────────────────────────────────────────
-
-  final List<String> _services = [
-    'Tous',
-    'Lavage simple',
-    'Lavage complet',
-    'Lavage + intérieur',
-    'Cire & polish',
-  ];
-
-  final List<String> _laveurs = [
-    'Koné Mamadou',
-    'Traoré Seydou',
-    'Bamba Inza',
-    'Coulibaly Adama',
-  ];
-
-  final Map<String, Map<String, int>> _prix = {
-    'Lavage simple': {'Voiture': 2500, 'Moto': 1000, 'SUV / Pickup': 3500},
-    'Lavage complet': {'Voiture': 4000, 'Moto': 1500, 'SUV / Pickup': 6000},
-    'Lavage + intérieur': {'Voiture': 6000, 'Moto': 2000, 'SUV / Pickup': 9000},
-    'Cire & polish': {'Voiture': 10000, 'Moto': 0, 'SUV / Pickup': 15000},
-  };
-
-  void _deconnecter() async {
-    final confirm = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Déconnexion'),
-        content: const Text('Veux-tu vraiment te déconnecter ?'),
-        actions: [
-          TextButton(
-              onPressed: () => Navigator.pop(context, false),
-              child: const Text('Annuler')),
-          TextButton(
-              onPressed: () => Navigator.pop(context, true),
-              child: const Text('Déconnecter',
-                  style: TextStyle(color: Colors.red))),
-        ],
-      ),
-    );
-    if (confirm == true) await FirebaseAuth.instance.signOut();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFF5F5F5),
-      appBar: AppBar(
-        title: const Text('Historique',
-            style: TextStyle(fontWeight: FontWeight.w600)),
-        backgroundColor: const Color(0xFF185FA5),
-        foregroundColor: Colors.white,
-        elevation: 0,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.logout),
-            tooltip: 'Déconnexion',
-            onPressed: _deconnecter,
-          ),
-        ],
-      ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => _showFormulaireLavage(context),
-        backgroundColor: const Color(0xFF185FA5),
-        foregroundColor: Colors.white,
-        icon: const Icon(Icons.add),
-        label: const Text('Nouveau lavage'),
-      ),
-      body: Column(
-        children: [
-          // Filtre services
-          SizedBox(
-            height: 50,
-            child: ListView.builder(
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              itemCount: _services.length,
-              itemBuilder: (context, i) {
-                final selected = _filtreService == _services[i] ||
-                    (_filtreService.isEmpty && _services[i] == 'Tous');
-                return GestureDetector(
-                  onTap: () => setState(() =>
-                      _filtreService = _services[i] == 'Tous' ? '' : _services[i]),
-                  child: Container(
-                    margin: const EdgeInsets.only(right: 8),
-                    padding: const EdgeInsets.symmetric(horizontal: 14),
-                    decoration: BoxDecoration(
-                      color: selected ? const Color(0xFF185FA5) : Colors.white,
-                      borderRadius: BorderRadius.circular(99),
-                      border: Border.all(
-                        color: selected
-                            ? const Color(0xFF185FA5)
-                            : Colors.grey.shade300,
-                      ),
-                    ),
-                    child: Text(
-                      _services[i],
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: selected ? Colors.white : Colors.grey.shade700,
-                        fontWeight:
-                            selected ? FontWeight.w600 : FontWeight.normal,
-                      ),
-                    ),
-                  ),
-                );
-              },
-            ),
-          ),
-
-          // Liste des lavages
-          Expanded(
-            child: StreamBuilder<List<Lavage>>(
-              stream: _service.getLavages(),
-              builder: (context, snapshot) {
-                if (snapshot.hasError) {
-                  return const Center(child: Text('Erreur de connexion'));
-                }
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(child: CircularProgressIndicator());
-                }
-
-                var lavages = snapshot.data ?? [];
-                if (_filtreService.isNotEmpty) {
-                  lavages = lavages
-                      .where((l) => l.service == _filtreService)
-                      .toList();
-                }
-
-                if (lavages.isEmpty) {
-                  return const Center(
-                    child: Text('Aucun lavage enregistré',
-                        style: TextStyle(color: Colors.grey)),
-                  );
-                }
-
-                return ListView.builder(
-                  padding: const EdgeInsets.all(16),
-                  itemCount: lavages.length,
-                  itemBuilder: (context, i) => _LavageItem(
-  lavage: lavages[i],
-  service: _service,
-  onModifier: () async {
-    final ok = await _verifierSuperviseur();
-    if (ok && context.mounted) {
-      _showFormulaireLavage(context, lavage: lavages[i]);
-    }
-  },
-  onSupprimer: () async {
-    final ok = await _verifierSuperviseur();
-    if (ok) _confirmerSuppression(lavages[i].id);
-  },
-),
-                );
-              },
-            ),
-          ),
-        ],
-      ),
-    );
   }
 
   void _confirmerSuppression(String id) async {
@@ -253,22 +103,36 @@ class _HistoriqueScreenState extends State<HistoriqueScreen> {
     if (confirm == true) await _service.supprimerLavage(id);
   }
 
-  void _showFormulaireLavage(BuildContext context, {Lavage? lavage}) {
-    final plaqueCtrl =
-        TextEditingController(text: lavage?.plaque ?? '');
-    final clientCtrl =
-        TextEditingController(text: lavage?.client ?? '');
+  void _showFormulaireLavage(BuildContext context, {Lavage? lavage}) async {
+    final laveurs = await _service.getLaveurs().first;
+    final nomsLaveurs = laveurs.map((l) => l.nomComplet).toList();
+    if (nomsLaveurs.isEmpty) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+              content: Text(
+                  'Aucun employé enregistré. Ajoutez un employé d\'abord.')),
+        );
+      }
+      return;
+    }
+
+    final plaqueCtrl = TextEditingController(text: lavage?.plaque ?? '');
+    final clientCtrl = TextEditingController(text: lavage?.client ?? '');
     String service = lavage?.service ?? 'Lavage simple';
     String typeVehicule = lavage?.typeVehicule ?? 'Voiture';
-    String laveur = lavage?.laveur ?? _laveurs.first;
+    String laveur = lavage?.laveur.isNotEmpty == true
+        ? lavage!.laveur
+        : nomsLaveurs.first;
     final bool estModification = lavage != null;
+
+    if (!context.mounted) return;
 
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
       builder: (context) => StatefulBuilder(
         builder: (context, setModalState) {
           final prixAuto = _prix[service]?[typeVehicule] ?? 0;
@@ -308,23 +172,20 @@ class _HistoriqueScreenState extends State<HistoriqueScreen> {
                   DropdownButtonFormField<String>(
                     initialValue: service,
                     decoration: const InputDecoration(
-                      labelText: 'Service',
-                      border: OutlineInputBorder(),
-                    ),
+                        labelText: 'Service',
+                        border: OutlineInputBorder()),
                     items: _prix.keys
                         .map((s) =>
                             DropdownMenuItem(value: s, child: Text(s)))
                         .toList(),
-                    onChanged: (v) =>
-                        setModalState(() => service = v!),
+                    onChanged: (v) => setModalState(() => service = v!),
                   ),
                   const SizedBox(height: 12),
                   DropdownButtonFormField<String>(
                     initialValue: typeVehicule,
                     decoration: const InputDecoration(
-                      labelText: 'Type de véhicule',
-                      border: OutlineInputBorder(),
-                    ),
+                        labelText: 'Type de véhicule',
+                        border: OutlineInputBorder()),
                     items: ['Voiture', 'Moto', 'SUV / Pickup']
                         .map((t) =>
                             DropdownMenuItem(value: t, child: Text(t)))
@@ -336,16 +197,15 @@ class _HistoriqueScreenState extends State<HistoriqueScreen> {
                   DropdownButtonFormField<String>(
                     initialValue: laveur,
                     decoration: const InputDecoration(
-                      labelText: 'Nom du laveur',
-                      border: OutlineInputBorder(),
+                      labelText: 'Laveur assigné',
                       prefixIcon: Icon(Icons.person_outline),
+                      border: OutlineInputBorder(),
                     ),
-                    items: _laveurs
+                    items: nomsLaveurs
                         .map((l) =>
                             DropdownMenuItem(value: l, child: Text(l)))
                         .toList(),
-                    onChanged: (v) =>
-                        setModalState(() => laveur = v!),
+                    onChanged: (v) => setModalState(() => laveur = v!),
                   ),
                   const SizedBox(height: 12),
                   Container(
@@ -385,14 +245,14 @@ class _HistoriqueScreenState extends State<HistoriqueScreen> {
                             clientCtrl.text.isEmpty) {
                           ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(
-                                content:
-                                    Text('Plaque et client requis')),
+                                content: Text('Plaque et client requis')),
                           );
                           return;
                         }
                         if (estModification) {
                           await _service.modifierLavage(lavage.id, {
-                            'plaque': plaqueCtrl.text.trim().toUpperCase(),
+                            'plaque':
+                                plaqueCtrl.text.trim().toUpperCase(),
                             'client': clientCtrl.text.trim(),
                             'service': service,
                             'typeVehicule': typeVehicule,
@@ -402,7 +262,8 @@ class _HistoriqueScreenState extends State<HistoriqueScreen> {
                         } else {
                           await _service.ajouterLavage(Lavage(
                             id: '',
-                            plaque: plaqueCtrl.text.trim().toUpperCase(),
+                            plaque:
+                                plaqueCtrl.text.trim().toUpperCase(),
                             client: clientCtrl.text.trim(),
                             service: service,
                             prix: prixAuto,
@@ -415,7 +276,9 @@ class _HistoriqueScreenState extends State<HistoriqueScreen> {
                         if (context.mounted) Navigator.pop(context);
                       },
                       child: Text(
-                        estModification ? 'Enregistrer les modifications' : 'Enregistrer',
+                        estModification
+                            ? 'Enregistrer les modifications'
+                            : 'Enregistrer',
                         style: const TextStyle(fontSize: 15),
                       ),
                     ),
@@ -428,15 +291,258 @@ class _HistoriqueScreenState extends State<HistoriqueScreen> {
       ),
     );
   }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: const Color(0xFFF5F5F5),
+      appBar: AppBar(
+        toolbarHeight: 0,
+        elevation: 0,
+        backgroundColor: const Color(0xFF185FA5),
+      ),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () => _showFormulaireLavage(context),
+        backgroundColor: const Color(0xFF185FA5),
+        foregroundColor: Colors.white,
+        icon: const Icon(Icons.add),
+        label: const Text('Nouveau lavage'),
+      ),
+      body: StreamBuilder<List<Lavage>>(
+        stream: _service.getLavages(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          if (snapshot.hasError) {
+            return const Center(child: Text('Erreur de connexion'));
+          }
+
+          final tousLavages = snapshot.data ?? [];
+
+          // Filtrer par service
+          var lavagesFiltres = tousLavages;
+          if (_filtreService.isNotEmpty) {
+            lavagesFiltres = tousLavages
+                .where((l) => l.service == _filtreService)
+                .toList();
+          }
+
+          final enAttente = lavagesFiltres
+              .where((l) => l.statut == 'En attente')
+              .toList();
+          final enCours = lavagesFiltres
+              .where((l) => l.statut == 'En cours')
+              .toList();
+
+          return Column(
+            children: [
+              // Filtre services
+              Container(
+                color: const Color(0xFF185FA5),
+                child: SizedBox(
+                  height: 52,
+                  child: ListView.builder(
+                    scrollDirection: Axis.horizontal,
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 16, vertical: 10),
+                    itemCount: _services.length,
+                    itemBuilder: (context, i) {
+                      final selected = _filtreService == _services[i] ||
+                          (_filtreService.isEmpty &&
+                              _services[i] == 'Tous');
+                      return GestureDetector(
+                        onTap: () => setState(() => _filtreService =
+                            _services[i] == 'Tous' ? '' : _services[i]),
+                        child: Container(
+                          margin: const EdgeInsets.only(right: 8),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 14),
+                          decoration: BoxDecoration(
+                            color: selected
+                                ? Colors.white
+                                : Colors.white
+                                    .withValues(alpha: 0.15),
+                            borderRadius: BorderRadius.circular(99),
+                          ),
+                          child: Text(
+                            _services[i],
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: selected
+                                  ? const Color(0xFF185FA5)
+                                  : Colors.white,
+                              fontWeight: selected
+                                  ? FontWeight.w600
+                                  : FontWeight.normal,
+                            ),
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ),
+
+              // Contenu
+              Expanded(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Section 1 — En attente
+                      _SectionHeader(
+                        titre: 'Lavages à venir',
+                        count: enAttente.length,
+                        couleur: const Color(0xFF854F0B),
+                        bgColor: const Color(0xFFFAEEDA),
+                        icon: Icons.hourglass_empty,
+                      ),
+                      const SizedBox(height: 10),
+                      if (enAttente.isEmpty)
+                        _EmptyState(message: 'Aucun lavage en attente')
+                      else
+                        ...enAttente.map((l) => _LavageCard(
+                              lavage: l,
+                              service: _service,
+                              onModifier: () async {
+                                final ok = await _verifierSuperviseur();
+                                if (ok && context.mounted) {
+                                  _showFormulaireLavage(context,
+                                      lavage: l);
+                                }
+                              },
+                              onSupprimer: () async {
+                                final ok = await _verifierSuperviseur();
+                                if (ok) _confirmerSuppression(l.id);
+                              },
+                            )),
+
+                      const SizedBox(height: 20),
+
+                      // Section 2 — En cours
+                      _SectionHeader(
+                        titre: 'Lavages en cours',
+                        count: enCours.length,
+                        couleur: const Color(0xFF185FA5),
+                        bgColor: const Color(0xFFE6F1FB),
+                        icon: Icons.local_car_wash,
+                      ),
+                      const SizedBox(height: 10),
+                      if (enCours.isEmpty)
+                        _EmptyState(message: 'Aucun lavage en cours')
+                      else
+                        ...enCours.map((l) => _LavageCard(
+                              lavage: l,
+                              service: _service,
+                              onModifier: () async {
+                                final ok = await _verifierSuperviseur();
+                                if (ok && context.mounted) {
+                                  _showFormulaireLavage(context,
+                                      lavage: l);
+                                }
+                              },
+                              onSupprimer: () async {
+                                final ok = await _verifierSuperviseur();
+                                if (ok) _confirmerSuppression(l.id);
+                              },
+                            )),
+
+                      const SizedBox(height: 80),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
 }
 
-class _LavageItem extends StatelessWidget {
+class _SectionHeader extends StatelessWidget {
+  final String titre;
+  final int count;
+  final Color couleur;
+  final Color bgColor;
+  final IconData icon;
+
+  const _SectionHeader({
+    required this.titre,
+    required this.count,
+    required this.couleur,
+    required this.bgColor,
+    required this.icon,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        color: bgColor,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: couleur.withValues(alpha: 0.2)),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, color: couleur, size: 20),
+          const SizedBox(width: 10),
+          Text(titre,
+              style: TextStyle(
+                  fontWeight: FontWeight.w600,
+                  fontSize: 14,
+                  color: couleur)),
+          const Spacer(),
+          Container(
+            padding:
+                const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+            decoration: BoxDecoration(
+              color: couleur,
+              borderRadius: BorderRadius.circular(99),
+            ),
+            child: Text('$count',
+                style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600)),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _EmptyState extends StatelessWidget {
+  final String message;
+  const _EmptyState({required this.message});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(vertical: 20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: Colors.grey.shade200),
+      ),
+      child: Text(message,
+          textAlign: TextAlign.center,
+          style: const TextStyle(color: Colors.grey, fontSize: 13)),
+    );
+  }
+}
+
+class _LavageCard extends StatelessWidget {
   final Lavage lavage;
   final FirestoreService service;
   final VoidCallback onModifier;
   final VoidCallback onSupprimer;
 
-  const _LavageItem({
+  const _LavageCard({
     required this.lavage,
     required this.service,
     required this.onModifier,
@@ -451,6 +557,30 @@ class _LavageItem extends StatelessWidget {
     }
   }
 
+  String get _nextStatut {
+    switch (lavage.statut) {
+      case 'En attente': return 'Démarrer';
+      case 'En cours': return 'Terminer';
+      default: return 'Rouvrir';
+    }
+  }
+
+  IconData get _nextIcon {
+    switch (lavage.statut) {
+      case 'En attente': return Icons.play_arrow_rounded;
+      case 'En cours': return Icons.check_circle_rounded;
+      default: return Icons.refresh_rounded;
+    }
+  }
+
+  Color get _nextColor {
+    switch (lavage.statut) {
+      case 'En attente': return const Color(0xFF185FA5);
+      case 'En cours': return const Color(0xFF3B6D11);
+      default: return const Color(0xFF854F0B);
+    }
+  }
+
   void _changerStatut() async {
     final statuts = ['En attente', 'En cours', 'Terminé'];
     final idx = statuts.indexOf(lavage.statut);
@@ -461,114 +591,147 @@ class _LavageItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.all(12),
+      margin: const EdgeInsets.only(bottom: 10),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(color: Colors.grey.shade200),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Container(
-                width: 42, height: 42,
-                decoration: BoxDecoration(
-                  color: const Color(0xFFE6F1FB),
-                  borderRadius: BorderRadius.circular(8),
+          // Infos principales
+          Padding(
+            padding: const EdgeInsets.all(14),
+            child: Row(
+              children: [
+                Container(
+                  width: 46, height: 46,
+                  decoration: BoxDecoration(
+                    color: _statusColor.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Icon(Icons.directions_car,
+                      color: _statusColor, size: 22),
                 ),
-                child: const Icon(Icons.directions_car,
-                    color: Color(0xFF185FA5), size: 20),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(lavage.plaque,
-                        style: const TextStyle(
-                            fontWeight: FontWeight.w600, fontSize: 14)),
-                    Text('${lavage.service} · ${lavage.client}',
-                        style: const TextStyle(
-                            color: Colors.grey, fontSize: 12)),
-                    if (lavage.laveur.isNotEmpty)
-                      Text('Laveur : ${lavage.laveur}',
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(lavage.plaque,
                           style: const TextStyle(
-                              color: Colors.grey, fontSize: 11)),
+                              fontWeight: FontWeight.w700,
+                              fontSize: 15)),
+                      const SizedBox(height: 2),
+                      Text(lavage.client,
+                          style: const TextStyle(
+                              color: Colors.grey, fontSize: 13)),
+                      Text('${lavage.service} · ${lavage.typeVehicule}',
+                          style: const TextStyle(
+                              color: Colors.grey, fontSize: 12)),
+                      if (lavage.laveur.isNotEmpty)
+                        Row(
+                          children: [
+                            const Icon(Icons.person_outline,
+                                size: 12, color: Colors.grey),
+                            const SizedBox(width: 4),
+                            Text(lavage.laveur,
+                                style: const TextStyle(
+                                    color: Colors.grey, fontSize: 12)),
+                          ],
+                        ),
+                    ],
+                  ),
+                ),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text('${lavage.prix} F',
+                        style: const TextStyle(
+                            fontWeight: FontWeight.w700,
+                            fontSize: 14)),
+                    const SizedBox(height: 4),
+                    Text(
+                      '${lavage.dateHeure.hour}:${lavage.dateHeure.minute.toString().padLeft(2, '0')}',
+                      style: const TextStyle(
+                          color: Colors.grey, fontSize: 12),
+                    ),
                   ],
                 ),
-              ),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Text('${lavage.prix} F',
-                      style: const TextStyle(
-                          fontWeight: FontWeight.w600, fontSize: 13)),
-                  const SizedBox(height: 4),
-                  GestureDetector(
-                    onTap: _changerStatut,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 8, vertical: 3),
-                      decoration: BoxDecoration(
-                        color: _statusColor.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(99),
-                        border: Border.all(
-                            color: _statusColor.withValues(alpha: 0.3)),
-                      ),
-                      child: Text(lavage.statut,
-                          style: TextStyle(
-                              color: _statusColor, fontSize: 11)),
-                    ),
-                  ),
-                ],
-              ),
-            ],
+              ],
+            ),
           ),
-          const SizedBox(height: 8),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                '${lavage.dateHeure.day}/${lavage.dateHeure.month}/${lavage.dateHeure.year} ${lavage.dateHeure.hour}:${lavage.dateHeure.minute.toString().padLeft(2, '0')}',
-                style: const TextStyle(color: Colors.grey, fontSize: 11),
-              ),
-              Row(
-                children: [
-                  GestureDetector(
-                    onTap: onModifier,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 10, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFE6F1FB),
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                      child: const Text('Modifier',
-                          style: TextStyle(
-                              color: Color(0xFF185FA5), fontSize: 12)),
+
+          // Barre d'actions
+          Container(
+            decoration: BoxDecoration(
+              color: Colors.grey.shade50,
+              borderRadius: const BorderRadius.vertical(
+                  bottom: Radius.circular(12)),
+              border: Border(
+                  top: BorderSide(color: Colors.grey.shade200)),
+            ),
+            child: Row(
+              children: [
+                // Bouton modifier
+                Expanded(
+                  child: TextButton.icon(
+                    onPressed: onModifier,
+                    icon: const Icon(Icons.edit_outlined, size: 16),
+                    label: const Text('Modifier'),
+                    style: TextButton.styleFrom(
+                      foregroundColor: const Color(0xFF185FA5),
+                      padding:
+                          const EdgeInsets.symmetric(vertical: 10),
                     ),
                   ),
-                  const SizedBox(width: 6),
-                  GestureDetector(
-                    onTap: onSupprimer,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 10, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFFCEBEB),
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                      child: const Text('Supprimer',
-                          style: TextStyle(
-                              color: Color(0xFFA32D2D), fontSize: 12)),
+                ),
+                Container(
+                    width: 1, height: 36,
+                    color: Colors.grey.shade200),
+
+                // Bouton changer statut — plus grand et visible
+                Expanded(
+                  flex: 2,
+                  child: TextButton.icon(
+                    onPressed: _changerStatut,
+                    icon: Icon(_nextIcon, size: 18),
+                    label: Text(_nextStatut,
+                        style: const TextStyle(
+                            fontWeight: FontWeight.w600)),
+                    style: TextButton.styleFrom(
+                      foregroundColor: _nextColor,
+                      padding:
+                          const EdgeInsets.symmetric(vertical: 10),
                     ),
                   ),
-                ],
-              ),
-            ],
+                ),
+                Container(
+                    width: 1, height: 36,
+                    color: Colors.grey.shade200),
+
+                // Bouton supprimer
+                Expanded(
+                  child: TextButton.icon(
+                    onPressed: onSupprimer,
+                    icon: const Icon(Icons.delete_outline, size: 16),
+                    label: const Text('Suppr.'),
+                    style: TextButton.styleFrom(
+                      foregroundColor: const Color(0xFFA32D2D),
+                      padding:
+                          const EdgeInsets.symmetric(vertical: 10),
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
         ],
       ),
