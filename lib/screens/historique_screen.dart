@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../models/lavage.dart';
 import '../services/firestore_service.dart';
+import 'package:prowash/services/superviseur_service.dart';
 
 class HistoriqueScreen extends StatefulWidget {
   const HistoriqueScreen({super.key});
@@ -13,6 +14,63 @@ class HistoriqueScreen extends StatefulWidget {
 class _HistoriqueScreenState extends State<HistoriqueScreen> {
   final FirestoreService _service = FirestoreService();
   String _filtreService = '';
+
+  // ── MÉTHODE PIN SUPERVISEUR ────────────────────────
+  Future<bool> _verifierSuperviseur() async {
+    if (SuperviseurService.estSuperviseur) return true;
+
+    final pinCtrl = TextEditingController();
+    bool? resultat = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Accès superviseur'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text('Entrez le code PIN superviseur',
+                style: TextStyle(color: Colors.grey, fontSize: 13)),
+            const SizedBox(height: 12),
+            TextField(
+              controller: pinCtrl,
+              keyboardType: TextInputType.number,
+              obscureText: true,
+              maxLength: 4,
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontSize: 24, letterSpacing: 8),
+              decoration: const InputDecoration(
+                counterText: '',
+                border: OutlineInputBorder(),
+                hintText: '••••',
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Annuler')),
+          TextButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('Confirmer')),
+        ],
+      ),
+    );
+
+    if (resultat == true) {
+      final valide = await SuperviseurService.verifierPin(pinCtrl.text);
+      if (!valide && context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Code PIN incorrect'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+      return valide;
+    }
+    return false;
+  }
+  // ──────────────────────────────────────────────────
 
   final List<String> _services = [
     'Tous',
@@ -153,12 +211,19 @@ class _HistoriqueScreenState extends State<HistoriqueScreen> {
                   padding: const EdgeInsets.all(16),
                   itemCount: lavages.length,
                   itemBuilder: (context, i) => _LavageItem(
-                    lavage: lavages[i],
-                    service: _service,
-                    onModifier: () =>
-                        _showFormulaireLavage(context, lavage: lavages[i]),
-                    onSupprimer: () => _confirmerSuppression(lavages[i].id),
-                  ),
+  lavage: lavages[i],
+  service: _service,
+  onModifier: () async {
+    final ok = await _verifierSuperviseur();
+    if (ok && context.mounted) {
+      _showFormulaireLavage(context, lavage: lavages[i]);
+    }
+  },
+  onSupprimer: () async {
+    final ok = await _verifierSuperviseur();
+    if (ok) _confirmerSuppression(lavages[i].id);
+  },
+),
                 );
               },
             ),
