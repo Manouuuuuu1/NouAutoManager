@@ -3,6 +3,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'firebase_options.dart';
 import 'screens/splash_screen.dart';
+import 'screens/home_screen.dart';
 import 'screens/historique_screen.dart';
 import 'screens/dashboard_screen.dart';
 import 'screens/laveurs_screen.dart';
@@ -53,21 +54,34 @@ class MainScreen extends StatefulWidget {
 class _MainScreenState extends State<MainScreen> {
   int _currentIndex = 0;
 
-  final List<Widget> _screens = const [
-    HistoriqueScreen(),
-    DashboardScreen(),
-    LaveursScreen(),
+  void changerOnglet(int index) {
+    setState(() => _currentIndex = index);
+  }
+
+  List<Widget> get _screens => [
+    HomeScreen(onNavigate: changerOnglet),
+    HistoriqueScreen(onHome: () => changerOnglet(0)),
+    DashboardScreen(onHome: () => changerOnglet(0)),
+    LaveursScreen(onHome: () => changerOnglet(0)),
   ];
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: _screens[_currentIndex],
-      bottomNavigationBar: BottomNavigationBar(
+      // Barre visible uniquement hors page d'accueil
+      bottomNavigationBar: _currentIndex == 0 ? null : BottomNavigationBar(
         currentIndex: _currentIndex,
         onTap: (i) => setState(() => _currentIndex = i),
         selectedItemColor: const Color(0xFF185FA5),
+        unselectedItemColor: Colors.grey,
+        type: BottomNavigationBarType.fixed,
         items: const [
+          BottomNavigationBarItem(
+            icon: Icon(Icons.home_outlined),
+            activeIcon: Icon(Icons.home),
+            label: 'Accueil',
+          ),
           BottomNavigationBarItem(
             icon: Icon(Icons.add_circle_outline),
             activeIcon: Icon(Icons.add_circle),

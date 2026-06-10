@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../models/lavage.dart';
-import '../models/laveur.dart';
 import '../services/firestore_service.dart';
 import '../services/superviseur_service.dart';
 
 class HistoriqueScreen extends StatefulWidget {
-  const HistoriqueScreen({super.key});
+  final VoidCallback? onHome;
+  const HistoriqueScreen({super.key, this.onHome});
 
   @override
   State<HistoriqueScreen> createState() => _HistoriqueScreenState();
@@ -16,12 +16,16 @@ class _HistoriqueScreenState extends State<HistoriqueScreen> {
   final FirestoreService _service = FirestoreService();
   String _filtreService = '';
 
+  static const _bgPage = Color(0xFF0a1628);
+  static const _bgAttente = Color(0xFF0e201a);
+  static const _bgEnCours = Color(0xFF111d2a);
+  static const _badgeAttente = Color(0xFF4a9e8a);
+  static const _badgeEnCours = Color(0xFF5a8ab0);
+  static const _teal = Color(0xFF06b6d4);
+
   final List<String> _services = [
-    'Tous',
-    'Lavage simple',
-    'Lavage complet',
-    'Lavage + intérieur',
-    'Cire & polish',
+    'Tous', 'Lavage simple', 'Lavage complet',
+    'Lavage + intérieur', 'Cire & polish',
   ];
 
   final Map<String, Map<String, int>> _prix = {
@@ -36,12 +40,15 @@ class _HistoriqueScreenState extends State<HistoriqueScreen> {
     bool? resultat = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Accès superviseur'),
+        backgroundColor: const Color(0xFF1a2744),
+        title: const Text('Accès superviseur',
+            style: TextStyle(color: Colors.white)),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Text('Entrez le code PIN superviseur',
-                style: TextStyle(color: Colors.grey, fontSize: 13)),
+            Text('Entrez le code PIN superviseur',
+                style: TextStyle(color: Colors.white.withValues(alpha: 0.6),
+                    fontSize: 13)),
             const SizedBox(height: 12),
             TextField(
               controller: pinCtrl,
@@ -49,11 +56,21 @@ class _HistoriqueScreenState extends State<HistoriqueScreen> {
               obscureText: true,
               maxLength: 4,
               textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: 24, letterSpacing: 8),
-              decoration: const InputDecoration(
+              style: const TextStyle(
+                  fontSize: 24, letterSpacing: 8, color: Colors.white),
+              decoration: InputDecoration(
                 counterText: '',
-                border: OutlineInputBorder(),
+                border: OutlineInputBorder(
+                    borderSide: BorderSide(
+                        color: Colors.white.withValues(alpha: 0.3))),
+                enabledBorder: OutlineInputBorder(
+                    borderSide: BorderSide(
+                        color: Colors.white.withValues(alpha: 0.3))),
+                focusedBorder: const OutlineInputBorder(
+                    borderSide: BorderSide(color: _teal)),
                 hintText: '••••',
+                hintStyle: TextStyle(
+                    color: Colors.white.withValues(alpha: 0.3)),
               ),
             ),
           ],
@@ -61,10 +78,13 @@ class _HistoriqueScreenState extends State<HistoriqueScreen> {
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(context, false),
-              child: const Text('Annuler')),
+              child: Text('Annuler',
+                  style: TextStyle(
+                      color: Colors.white.withValues(alpha: 0.6)))),
           TextButton(
               onPressed: () => Navigator.pop(context, true),
-              child: const Text('Confirmer')),
+              child: const Text('Confirmer',
+                  style: TextStyle(color: _teal))),
         ],
       ),
     );
@@ -87,12 +107,17 @@ class _HistoriqueScreenState extends State<HistoriqueScreen> {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Supprimer ce lavage ?'),
-        content: const Text('Cette action est irréversible.'),
+        backgroundColor: const Color(0xFF1a2744),
+        title: const Text('Supprimer ce lavage ?',
+            style: TextStyle(color: Colors.white)),
+        content: Text('Cette action est irréversible.',
+            style: TextStyle(color: Colors.white.withValues(alpha: 0.7))),
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(context, false),
-              child: const Text('Annuler')),
+              child: Text('Annuler',
+                  style: TextStyle(
+                      color: Colors.white.withValues(alpha: 0.6)))),
           TextButton(
               onPressed: () => Navigator.pop(context, true),
               child: const Text('Supprimer',
@@ -110,8 +135,7 @@ class _HistoriqueScreenState extends State<HistoriqueScreen> {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-              content: Text(
-                  'Aucun employé enregistré. Ajoutez un employé d\'abord.')),
+              content: Text('Aucun employé enregistré.')),
         );
       }
       return;
@@ -122,8 +146,7 @@ class _HistoriqueScreenState extends State<HistoriqueScreen> {
     String service = lavage?.service ?? 'Lavage simple';
     String typeVehicule = lavage?.typeVehicule ?? 'Voiture';
     String laveur = lavage?.laveur.isNotEmpty == true
-        ? lavage!.laveur
-        : nomsLaveurs.first;
+        ? lavage!.laveur : nomsLaveurs.first;
     final bool estModification = lavage != null;
 
     if (!context.mounted) return;
@@ -131,114 +154,102 @@ class _HistoriqueScreenState extends State<HistoriqueScreen> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
+      backgroundColor: const Color(0xFF0f1f35),
       shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
       builder: (context) => StatefulBuilder(
         builder: (context, setModalState) {
           final prixAuto = _prix[service]?[typeVehicule] ?? 0;
           return Padding(
             padding: EdgeInsets.only(
-              left: 20, right: 20, top: 20,
-              bottom: MediaQuery.of(context).viewInsets.bottom + 20,
+              left: 20, right: 20, top: 24,
+              bottom: MediaQuery.of(context).viewInsets.bottom + 24,
             ),
             child: SingleChildScrollView(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  // Handle
+                  Center(
+                    child: Container(
+                      width: 40, height: 4,
+                      margin: const EdgeInsets.only(bottom: 20),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.2),
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                  ),
                   Text(
                     estModification ? 'Modifier le lavage' : 'Nouveau lavage',
                     style: const TextStyle(
-                        fontSize: 18, fontWeight: FontWeight.w600),
+                        fontSize: 18, fontWeight: FontWeight.w700,
+                        color: Colors.white),
                   ),
-                  const SizedBox(height: 16),
-                  TextField(
-                    controller: plaqueCtrl,
-                    decoration: const InputDecoration(
-                      labelText: 'Plaque du véhicule',
-                      hintText: 'ex: CI-1234-A',
-                      border: OutlineInputBorder(),
-                    ),
-                  ),
+                  const SizedBox(height: 20),
+                  _DarkField(controller: plaqueCtrl,
+                      label: 'Plaque du véhicule', hint: 'ex: CI-1234-A'),
                   const SizedBox(height: 12),
-                  TextField(
-                    controller: clientCtrl,
-                    decoration: const InputDecoration(
-                      labelText: 'Nom du client',
-                      border: OutlineInputBorder(),
-                    ),
-                  ),
+                  _DarkField(controller: clientCtrl, label: 'Nom du client'),
                   const SizedBox(height: 12),
-                  DropdownButtonFormField<String>(
-                    initialValue: service,
-                    decoration: const InputDecoration(
-                        labelText: 'Service',
-                        border: OutlineInputBorder()),
-                    items: _prix.keys
-                        .map((s) =>
-                            DropdownMenuItem(value: s, child: Text(s)))
-                        .toList(),
+                  _DarkDropdown<String>(
+                    label: 'Service',
+                    value: service,
+                    items: _prix.keys.toList(),
                     onChanged: (v) => setModalState(() => service = v!),
                   ),
                   const SizedBox(height: 12),
-                  DropdownButtonFormField<String>(
-                    initialValue: typeVehicule,
-                    decoration: const InputDecoration(
-                        labelText: 'Type de véhicule',
-                        border: OutlineInputBorder()),
-                    items: ['Voiture', 'Moto', 'SUV / Pickup']
-                        .map((t) =>
-                            DropdownMenuItem(value: t, child: Text(t)))
-                        .toList(),
-                    onChanged: (v) =>
-                        setModalState(() => typeVehicule = v!),
+                  _DarkDropdown<String>(
+                    label: 'Type de véhicule',
+                    value: typeVehicule,
+                    items: ['Voiture', 'Moto', 'SUV / Pickup'],
+                    onChanged: (v) => setModalState(() => typeVehicule = v!),
                   ),
                   const SizedBox(height: 12),
-                  DropdownButtonFormField<String>(
-                    initialValue: laveur,
-                    decoration: const InputDecoration(
-                      labelText: 'Laveur assigné',
-                      prefixIcon: Icon(Icons.person_outline),
-                      border: OutlineInputBorder(),
-                    ),
-                    items: nomsLaveurs
-                        .map((l) =>
-                            DropdownMenuItem(value: l, child: Text(l)))
-                        .toList(),
+                  _DarkDropdown<String>(
+                    label: 'Laveur assigné',
+                    value: laveur,
+                    items: nomsLaveurs,
                     onChanged: (v) => setModalState(() => laveur = v!),
+                    icon: Icons.person_outline,
                   ),
                   const SizedBox(height: 12),
                   Container(
-                    padding: const EdgeInsets.all(12),
+                    padding: const EdgeInsets.all(14),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFE6F1FB),
-                      borderRadius: BorderRadius.circular(8),
+                      color: _teal.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(
+                          color: _teal.withValues(alpha: 0.3)),
                     ),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Text('Prix calculé automatiquement',
+                        Text('Prix calculé automatiquement',
                             style: TextStyle(
-                                color: Color(0xFF185FA5), fontSize: 13)),
+                                color: _teal.withValues(alpha: 0.9),
+                                fontSize: 13)),
                         Text('$prixAuto F CFA',
                             style: const TextStyle(
-                                color: Color(0xFF185FA5),
-                                fontWeight: FontWeight.w600,
-                                fontSize: 15)),
+                                color: _teal,
+                                fontWeight: FontWeight.w700,
+                                fontSize: 16)),
                       ],
                     ),
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 20),
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton(
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF185FA5),
+                        backgroundColor: _teal,
                         foregroundColor: Colors.white,
-                        padding:
-                            const EdgeInsets.symmetric(vertical: 14),
+                        padding: const EdgeInsets.symmetric(vertical: 14),
                         shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10)),
+                            borderRadius: BorderRadius.circular(12)),
+                        elevation: 8,
+                        shadowColor: _teal.withValues(alpha: 0.5),
                       ),
                       onPressed: () async {
                         if (plaqueCtrl.text.isEmpty ||
@@ -251,8 +262,7 @@ class _HistoriqueScreenState extends State<HistoriqueScreen> {
                         }
                         if (estModification) {
                           await _service.modifierLavage(lavage.id, {
-                            'plaque':
-                                plaqueCtrl.text.trim().toUpperCase(),
+                            'plaque': plaqueCtrl.text.trim().toUpperCase(),
                             'client': clientCtrl.text.trim(),
                             'service': service,
                             'typeVehicule': typeVehicule,
@@ -262,8 +272,7 @@ class _HistoriqueScreenState extends State<HistoriqueScreen> {
                         } else {
                           await _service.ajouterLavage(Lavage(
                             id: '',
-                            plaque:
-                                plaqueCtrl.text.trim().toUpperCase(),
+                            plaque: plaqueCtrl.text.trim().toUpperCase(),
                             client: clientCtrl.text.trim(),
                             service: service,
                             prix: prixAuto,
@@ -279,7 +288,8 @@ class _HistoriqueScreenState extends State<HistoriqueScreen> {
                         estModification
                             ? 'Enregistrer les modifications'
                             : 'Enregistrer',
-                        style: const TextStyle(fontSize: 15),
+                        style: const TextStyle(
+                            fontSize: 15, fontWeight: FontWeight.w600),
                       ),
                     ),
                   ),
@@ -292,35 +302,77 @@ class _HistoriqueScreenState extends State<HistoriqueScreen> {
     );
   }
 
+  void _deconnecter() async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF1a2744),
+        title: const Text('Déconnexion',
+            style: TextStyle(color: Colors.white)),
+        content: Text('Veux-tu vraiment te déconnecter ?',
+            style: TextStyle(color: Colors.white.withValues(alpha: 0.7))),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: Text('Annuler',
+                  style: TextStyle(
+                      color: Colors.white.withValues(alpha: 0.6)))),
+          TextButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('Déconnecter',
+                  style: TextStyle(color: Colors.red))),
+        ],
+      ),
+    );
+    if (confirm == true) {
+      SuperviseurService.seDeconnecter();
+      await FirebaseAuth.instance.signOut();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F5F5),
+      backgroundColor: _bgPage,
       appBar: AppBar(
-        toolbarHeight: 0,
+        backgroundColor: const Color(0xFF0f1f35),
         elevation: 0,
-        backgroundColor: const Color(0xFF185FA5),
+        title: GestureDetector(
+          onTap: () => widget.onHome?.call(),
+          child: Image.asset('assets/images/logo.png', height: 32),
+        ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.logout, color: Colors.white54),
+            tooltip: 'Déconnexion',
+            onPressed: _deconnecter,
+          ),
+        ],
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _showFormulaireLavage(context),
-        backgroundColor: const Color(0xFF185FA5),
+        backgroundColor: _teal,
         foregroundColor: Colors.white,
+        elevation: 8,
         icon: const Icon(Icons.add),
-        label: const Text('Nouveau lavage'),
+        label: const Text('Nouveau lavage',
+            style: TextStyle(fontWeight: FontWeight.w600)),
       ),
       body: StreamBuilder<List<Lavage>>(
         stream: _service.getLavages(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
+            return const Center(
+                child: CircularProgressIndicator(color: _teal));
           }
           if (snapshot.hasError) {
-            return const Center(child: Text('Erreur de connexion'));
+            return Center(
+                child: Text('Erreur de connexion',
+                    style: TextStyle(
+                        color: Colors.white.withValues(alpha: 0.6))));
           }
 
           final tousLavages = snapshot.data ?? [];
-
-          // Filtrer par service
           var lavagesFiltres = tousLavages;
           if (_filtreService.isNotEmpty) {
             lavagesFiltres = tousLavages
@@ -329,49 +381,49 @@ class _HistoriqueScreenState extends State<HistoriqueScreen> {
           }
 
           final enAttente = lavagesFiltres
-              .where((l) => l.statut == 'En attente')
-              .toList();
+              .where((l) => l.statut == 'En attente').toList();
           final enCours = lavagesFiltres
-              .where((l) => l.statut == 'En cours')
-              .toList();
+              .where((l) => l.statut == 'En cours').toList();
 
           return Column(
             children: [
               // Filtre services
               Container(
-                color: const Color(0xFF185FA5),
+                color: const Color(0xFF0f1f35),
                 child: SizedBox(
-                  height: 52,
+                  height: 48,
                   child: ListView.builder(
                     scrollDirection: Axis.horizontal,
                     padding: const EdgeInsets.symmetric(
-                        horizontal: 16, vertical: 10),
+                        horizontal: 16, vertical: 8),
                     itemCount: _services.length,
                     itemBuilder: (context, i) {
                       final selected = _filtreService == _services[i] ||
-                          (_filtreService.isEmpty &&
-                              _services[i] == 'Tous');
+                          (_filtreService.isEmpty && _services[i] == 'Tous');
                       return GestureDetector(
                         onTap: () => setState(() => _filtreService =
                             _services[i] == 'Tous' ? '' : _services[i]),
                         child: Container(
                           margin: const EdgeInsets.only(right: 8),
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 14),
+                          padding: const EdgeInsets.symmetric(horizontal: 14),
                           decoration: BoxDecoration(
                             color: selected
-                                ? Colors.white
-                                : Colors.white
-                                    .withValues(alpha: 0.15),
+                                ? _teal
+                                : Colors.white.withValues(alpha: 0.08),
                             borderRadius: BorderRadius.circular(99),
+                            border: Border.all(
+                              color: selected
+                                  ? _teal
+                                  : Colors.white.withValues(alpha: 0.15),
+                            ),
                           ),
                           child: Text(
                             _services[i],
                             style: TextStyle(
                               fontSize: 12,
                               color: selected
-                                  ? const Color(0xFF185FA5)
-                                  : Colors.white,
+                                  ? Colors.white
+                                  : Colors.white.withValues(alpha: 0.6),
                               fontWeight: selected
                                   ? FontWeight.w600
                                   : FontWeight.normal,
@@ -384,33 +436,32 @@ class _HistoriqueScreenState extends State<HistoriqueScreen> {
                 ),
               ),
 
-              // Contenu
               Expanded(
                 child: SingleChildScrollView(
                   padding: const EdgeInsets.all(16),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Section 1 — En attente
+                      // Section En attente
                       _SectionHeader(
                         titre: 'Lavages à venir',
                         count: enAttente.length,
-                        couleur: const Color(0xFF854F0B),
-                        bgColor: const Color(0xFFFAEEDA),
+                        couleur: _badgeAttente,
+                        bgColor: _bgAttente,
                         icon: Icons.hourglass_empty,
                       ),
                       const SizedBox(height: 10),
                       if (enAttente.isEmpty)
-                        _EmptyState(message: 'Aucun lavage en attente')
+                        _EmptyCard(message: 'Aucun lavage en attente')
                       else
                         ...enAttente.map((l) => _LavageCard(
                               lavage: l,
                               service: _service,
+                              accentColor: _badgeAttente,
                               onModifier: () async {
                                 final ok = await _verifierSuperviseur();
                                 if (ok && context.mounted) {
-                                  _showFormulaireLavage(context,
-                                      lavage: l);
+                                  _showFormulaireLavage(context, lavage: l);
                                 }
                               },
                               onSupprimer: () async {
@@ -421,26 +472,26 @@ class _HistoriqueScreenState extends State<HistoriqueScreen> {
 
                       const SizedBox(height: 20),
 
-                      // Section 2 — En cours
+                      // Section En cours
                       _SectionHeader(
                         titre: 'Lavages en cours',
                         count: enCours.length,
-                        couleur: const Color(0xFF185FA5),
-                        bgColor: const Color(0xFFE6F1FB),
-                        icon: Icons.local_car_wash,
+                        couleur: _badgeEnCours,
+                        bgColor: _bgEnCours,
+                        icon: Icons.water_drop_outlined,
                       ),
                       const SizedBox(height: 10),
                       if (enCours.isEmpty)
-                        _EmptyState(message: 'Aucun lavage en cours')
+                        _EmptyCard(message: 'Aucun lavage en cours')
                       else
                         ...enCours.map((l) => _LavageCard(
                               lavage: l,
                               service: _service,
+                              accentColor: _badgeEnCours,
                               onModifier: () async {
                                 final ok = await _verifierSuperviseur();
                                 if (ok && context.mounted) {
-                                  _showFormulaireLavage(context,
-                                      lavage: l);
+                                  _showFormulaireLavage(context, lavage: l);
                                 }
                               },
                               onSupprimer: () async {
@@ -449,7 +500,7 @@ class _HistoriqueScreenState extends State<HistoriqueScreen> {
                               },
                             )),
 
-                      const SizedBox(height: 80),
+                      const SizedBox(height: 100),
                     ],
                   ),
                 ),
@@ -458,6 +509,94 @@ class _HistoriqueScreenState extends State<HistoriqueScreen> {
           );
         },
       ),
+    );
+  }
+}
+
+// Widgets utilitaires
+
+class _DarkField extends StatelessWidget {
+  final TextEditingController controller;
+  final String label;
+  final String? hint;
+
+  const _DarkField({
+    required this.controller,
+    required this.label,
+    this.hint,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return TextField(
+      controller: controller,
+      style: const TextStyle(color: Colors.white),
+      decoration: InputDecoration(
+        labelText: label,
+        hintText: hint,
+        labelStyle: TextStyle(color: Colors.white.withValues(alpha: 0.6)),
+        hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.3)),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.2)),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide: const BorderSide(color: Color(0xFF06b6d4)),
+        ),
+        filled: true,
+        fillColor: Colors.white.withValues(alpha: 0.05),
+      ),
+    );
+  }
+}
+
+class _DarkDropdown<T> extends StatelessWidget {
+  final String label;
+  final T value;
+  final List<T> items;
+  final ValueChanged<T?> onChanged;
+  final IconData? icon;
+
+  const _DarkDropdown({
+    required this.label,
+    required this.value,
+    required this.items,
+    required this.onChanged,
+    this.icon,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return DropdownButtonFormField<T>(
+      value: value,
+      dropdownColor: const Color(0xFF1a2744),
+      style: const TextStyle(color: Colors.white),
+      decoration: InputDecoration(
+        labelText: label,
+        labelStyle: TextStyle(color: Colors.white.withValues(alpha: 0.6)),
+        prefixIcon: icon != null
+            ? Icon(icon, color: Colors.white.withValues(alpha: 0.5))
+            : null,
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.2)),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide: const BorderSide(color: Color(0xFF06b6d4)),
+        ),
+        filled: true,
+        fillColor: Colors.white.withValues(alpha: 0.05),
+      ),
+      items: items
+          .map((item) => DropdownMenuItem<T>(
+                value: item,
+                child: Text(item.toString(),
+                    style: const TextStyle(color: Colors.white)),
+              ))
+          .toList(),
+      onChanged: onChanged,
     );
   }
 }
@@ -480,11 +619,11 @@ class _SectionHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
         color: bgColor,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: couleur.withValues(alpha: 0.2)),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: couleur.withValues(alpha: 0.3)),
       ),
       child: Row(
         children: [
@@ -497,8 +636,7 @@ class _SectionHeader extends StatelessWidget {
                   color: couleur)),
           const Spacer(),
           Container(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
             decoration: BoxDecoration(
               color: couleur,
               borderRadius: BorderRadius.circular(99),
@@ -515,9 +653,9 @@ class _SectionHeader extends StatelessWidget {
   }
 }
 
-class _EmptyState extends StatelessWidget {
+class _EmptyCard extends StatelessWidget {
   final String message;
-  const _EmptyState({required this.message});
+  const _EmptyCard({required this.message});
 
   @override
   Widget build(BuildContext context) {
@@ -525,13 +663,14 @@ class _EmptyState extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.symmetric(vertical: 20),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: Colors.grey.shade200),
+        color: const Color(0xFF0d1b2a),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.07)),
       ),
       child: Text(message,
           textAlign: TextAlign.center,
-          style: const TextStyle(color: Colors.grey, fontSize: 13)),
+          style: TextStyle(
+              color: Colors.white.withValues(alpha: 0.3), fontSize: 13)),
     );
   }
 }
@@ -539,23 +678,17 @@ class _EmptyState extends StatelessWidget {
 class _LavageCard extends StatelessWidget {
   final Lavage lavage;
   final FirestoreService service;
+  final Color accentColor;
   final VoidCallback onModifier;
   final VoidCallback onSupprimer;
 
   const _LavageCard({
     required this.lavage,
     required this.service,
+    required this.accentColor,
     required this.onModifier,
     required this.onSupprimer,
   });
-
-  Color get _statusColor {
-    switch (lavage.statut) {
-      case 'Terminé': return const Color(0xFF3B6D11);
-      case 'En cours': return const Color(0xFF185FA5);
-      default: return const Color(0xFF854F0B);
-    }
-  }
 
   String get _nextStatut {
     switch (lavage.statut) {
@@ -573,14 +706,6 @@ class _LavageCard extends StatelessWidget {
     }
   }
 
-  Color get _nextColor {
-    switch (lavage.statut) {
-      case 'En attente': return const Color(0xFF185FA5);
-      case 'En cours': return const Color(0xFF3B6D11);
-      default: return const Color(0xFF854F0B);
-    }
-  }
-
   void _changerStatut() async {
     final statuts = ['En attente', 'En cours', 'Terminé'];
     final idx = statuts.indexOf(lavage.statut);
@@ -593,20 +718,19 @@ class _LavageCard extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey.shade200),
+        color: const Color(0xFF0d1b2a),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: accentColor.withValues(alpha: 0.25)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
+            color: accentColor.withValues(alpha: 0.08),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
           ),
         ],
       ),
       child: Column(
         children: [
-          // Infos principales
           Padding(
             padding: const EdgeInsets.all(14),
             child: Row(
@@ -614,11 +738,13 @@ class _LavageCard extends StatelessWidget {
                 Container(
                   width: 46, height: 46,
                   decoration: BoxDecoration(
-                    color: _statusColor.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(10),
+                    color: accentColor.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                        color: accentColor.withValues(alpha: 0.3)),
                   ),
                   child: Icon(Icons.directions_car,
-                      color: _statusColor, size: 22),
+                      color: accentColor, size: 22),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
@@ -628,25 +754,28 @@ class _LavageCard extends StatelessWidget {
                       Text(lavage.plaque,
                           style: const TextStyle(
                               fontWeight: FontWeight.w700,
-                              fontSize: 15)),
+                              fontSize: 15,
+                              color: Colors.white)),
                       const SizedBox(height: 2),
                       Text(lavage.client,
-                          style: const TextStyle(
-                              color: Colors.grey, fontSize: 13)),
+                          style: TextStyle(
+                              color: Colors.white.withValues(alpha: 0.6),
+                              fontSize: 13)),
                       Text('${lavage.service} · ${lavage.typeVehicule}',
-                          style: const TextStyle(
-                              color: Colors.grey, fontSize: 12)),
+                          style: TextStyle(
+                              color: Colors.white.withValues(alpha: 0.4),
+                              fontSize: 12)),
                       if (lavage.laveur.isNotEmpty)
-                        Row(
-                          children: [
-                            const Icon(Icons.person_outline,
-                                size: 12, color: Colors.grey),
-                            const SizedBox(width: 4),
-                            Text(lavage.laveur,
-                                style: const TextStyle(
-                                    color: Colors.grey, fontSize: 12)),
-                          ],
-                        ),
+                        Row(children: [
+                          Icon(Icons.person_outline,
+                              size: 12,
+                              color: Colors.white.withValues(alpha: 0.4)),
+                          const SizedBox(width: 4),
+                          Text(lavage.laveur,
+                              style: TextStyle(
+                                  color: Colors.white.withValues(alpha: 0.4),
+                                  fontSize: 12)),
+                        ]),
                     ],
                   ),
                 ),
@@ -654,14 +783,16 @@ class _LavageCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
                     Text('${lavage.prix} F',
-                        style: const TextStyle(
+                        style: TextStyle(
                             fontWeight: FontWeight.w700,
-                            fontSize: 14)),
+                            fontSize: 14,
+                            color: accentColor)),
                     const SizedBox(height: 4),
                     Text(
                       '${lavage.dateHeure.hour}:${lavage.dateHeure.minute.toString().padLeft(2, '0')}',
-                      style: const TextStyle(
-                          color: Colors.grey, fontSize: 12),
+                      style: TextStyle(
+                          color: Colors.white.withValues(alpha: 0.4),
+                          fontSize: 12),
                     ),
                   ],
                 ),
@@ -672,61 +803,51 @@ class _LavageCard extends StatelessWidget {
           // Barre d'actions
           Container(
             decoration: BoxDecoration(
-              color: Colors.grey.shade50,
+              color: Colors.white.withValues(alpha: 0.03),
               borderRadius: const BorderRadius.vertical(
-                  bottom: Radius.circular(12)),
+                  bottom: Radius.circular(14)),
               border: Border(
-                  top: BorderSide(color: Colors.grey.shade200)),
+                  top: BorderSide(
+                      color: Colors.white.withValues(alpha: 0.07))),
             ),
             child: Row(
               children: [
-                // Bouton modifier
                 Expanded(
                   child: TextButton.icon(
                     onPressed: onModifier,
-                    icon: const Icon(Icons.edit_outlined, size: 16),
+                    icon: const Icon(Icons.edit_outlined, size: 15),
                     label: const Text('Modifier'),
                     style: TextButton.styleFrom(
-                      foregroundColor: const Color(0xFF185FA5),
-                      padding:
-                          const EdgeInsets.symmetric(vertical: 10),
+                      foregroundColor: Colors.white.withValues(alpha: 0.6),
+                      padding: const EdgeInsets.symmetric(vertical: 10),
                     ),
                   ),
                 ),
-                Container(
-                    width: 1, height: 36,
-                    color: Colors.grey.shade200),
-
-                // Bouton changer statut — plus grand et visible
+                Container(width: 1, height: 30,
+                    color: Colors.white.withValues(alpha: 0.07)),
                 Expanded(
                   flex: 2,
                   child: TextButton.icon(
                     onPressed: _changerStatut,
                     icon: Icon(_nextIcon, size: 18),
                     label: Text(_nextStatut,
-                        style: const TextStyle(
-                            fontWeight: FontWeight.w600)),
+                        style: const TextStyle(fontWeight: FontWeight.w600)),
                     style: TextButton.styleFrom(
-                      foregroundColor: _nextColor,
-                      padding:
-                          const EdgeInsets.symmetric(vertical: 10),
+                      foregroundColor: accentColor,
+                      padding: const EdgeInsets.symmetric(vertical: 10),
                     ),
                   ),
                 ),
-                Container(
-                    width: 1, height: 36,
-                    color: Colors.grey.shade200),
-
-                // Bouton supprimer
+                Container(width: 1, height: 30,
+                    color: Colors.white.withValues(alpha: 0.07)),
                 Expanded(
                   child: TextButton.icon(
                     onPressed: onSupprimer,
-                    icon: const Icon(Icons.delete_outline, size: 16),
+                    icon: const Icon(Icons.delete_outline, size: 15),
                     label: const Text('Suppr.'),
                     style: TextButton.styleFrom(
-                      foregroundColor: const Color(0xFFA32D2D),
-                      padding:
-                          const EdgeInsets.symmetric(vertical: 10),
+                      foregroundColor: Colors.red.withValues(alpha: 0.7),
+                      padding: const EdgeInsets.symmetric(vertical: 10),
                     ),
                   ),
                 ),

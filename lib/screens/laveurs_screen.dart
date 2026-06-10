@@ -6,7 +6,8 @@ import '../services/firestore_service.dart';
 import '../services/superviseur_service.dart';
 
 class LaveursScreen extends StatefulWidget {
-  const LaveursScreen({super.key});
+  final VoidCallback? onHome;
+  const LaveursScreen({super.key, this.onHome});
 
   @override
   State<LaveursScreen> createState() => _LaveursScreenState();
