@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../models/lavage.dart';
+import '../models/laveur.dart';
 import '../services/firestore_service.dart';
 import '../services/superviseur_service.dart';
 
@@ -22,6 +23,8 @@ class _HistoriqueScreenState extends State<HistoriqueScreen> {
   static const _badgeAttente = Color(0xFF4a9e8a);
   static const _badgeEnCours = Color(0xFF5a8ab0);
   static const _teal = Color(0xFF06b6d4);
+  static const _violet = Color(0xFF818cf8);
+  static const _bgRDV = Color(0xFF13112a);
 
   final List<String> _services = [
     'Tous', 'Lavage simple', 'Lavage complet',
@@ -47,7 +50,8 @@ class _HistoriqueScreenState extends State<HistoriqueScreen> {
           mainAxisSize: MainAxisSize.min,
           children: [
             Text('Entrez le code PIN superviseur',
-                style: TextStyle(color: Colors.white.withValues(alpha: 0.6),
+                style: TextStyle(
+                    color: Colors.white.withValues(alpha: 0.6),
                     fontSize: 13)),
             const SizedBox(height: 12),
             TextField(
@@ -60,9 +64,6 @@ class _HistoriqueScreenState extends State<HistoriqueScreen> {
                   fontSize: 24, letterSpacing: 8, color: Colors.white),
               decoration: InputDecoration(
                 counterText: '',
-                border: OutlineInputBorder(
-                    borderSide: BorderSide(
-                        color: Colors.white.withValues(alpha: 0.3))),
                 enabledBorder: OutlineInputBorder(
                     borderSide: BorderSide(
                         color: Colors.white.withValues(alpha: 0.3))),
@@ -111,7 +112,8 @@ class _HistoriqueScreenState extends State<HistoriqueScreen> {
         title: const Text('Supprimer ce lavage ?',
             style: TextStyle(color: Colors.white)),
         content: Text('Cette action est irréversible.',
-            style: TextStyle(color: Colors.white.withValues(alpha: 0.7))),
+            style:
+                TextStyle(color: Colors.white.withValues(alpha: 0.7))),
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(context, false),
@@ -128,14 +130,14 @@ class _HistoriqueScreenState extends State<HistoriqueScreen> {
     if (confirm == true) await _service.supprimerLavage(id);
   }
 
-  void _showFormulaireLavage(BuildContext context, {Lavage? lavage}) async {
+  void _showFormulaireLavage(BuildContext context,
+      {Lavage? lavage, String typeAccueil = 'Présentiel'}) async {
     final laveurs = await _service.getLaveurs().first;
     final nomsLaveurs = laveurs.map((l) => l.nomComplet).toList();
     if (nomsLaveurs.isEmpty) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-              content: Text('Aucun employé enregistré.')),
+          const SnackBar(content: Text('Aucun employé enregistré.')),
         );
       }
       return;
@@ -143,10 +145,15 @@ class _HistoriqueScreenState extends State<HistoriqueScreen> {
 
     final plaqueCtrl = TextEditingController(text: lavage?.plaque ?? '');
     final clientCtrl = TextEditingController(text: lavage?.client ?? '');
+    final telCtrl = TextEditingController(text: lavage?.telephone ?? '');
     String service = lavage?.service ?? 'Lavage simple';
     String typeVehicule = lavage?.typeVehicule ?? 'Voiture';
     String laveur = lavage?.laveur.isNotEmpty == true
-        ? lavage!.laveur : nomsLaveurs.first;
+        ? lavage!.laveur
+        : nomsLaveurs.first;
+    String accueil = lavage?.typeAccueil ?? typeAccueil;
+    DateTime? dateRDV = lavage?.dateRDV;
+    String heureRDV = lavage?.heureRDV ?? '';
     final bool estModification = lavage != null;
 
     if (!context.mounted) return;
@@ -160,6 +167,7 @@ class _HistoriqueScreenState extends State<HistoriqueScreen> {
       builder: (context) => StatefulBuilder(
         builder: (context, setModalState) {
           final prixAuto = _prix[service]?[typeVehicule] ?? 0;
+          final estRDV = accueil == 'RDV';
           return Padding(
             padding: EdgeInsets.only(
               left: 20, right: 20, top: 24,
@@ -182,29 +190,226 @@ class _HistoriqueScreenState extends State<HistoriqueScreen> {
                     ),
                   ),
                   Text(
-                    estModification ? 'Modifier le lavage' : 'Nouveau lavage',
+                    estModification
+                        ? 'Modifier le lavage'
+                        : 'Nouveau lavage',
                     style: const TextStyle(
-                        fontSize: 18, fontWeight: FontWeight.w700,
+                        fontSize: 18,
+                        fontWeight: FontWeight.w700,
                         color: Colors.white),
                   ),
-                  const SizedBox(height: 20),
-                  _DarkField(controller: plaqueCtrl,
-                      label: 'Plaque du véhicule', hint: 'ex: CI-1234-A'),
+                  const SizedBox(height: 16),
+
+                  // Toggle Présentiel / RDV
+                  if (!estModification)
+                    Container(
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.05),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(
+                            color: Colors.white.withValues(alpha: 0.1)),
+                      ),
+                      child: Row(
+                        children: ['Présentiel', 'RDV'].map((type) {
+                          final selected = accueil == type;
+                          return Expanded(
+                            child: GestureDetector(
+                              onTap: () =>
+                                  setModalState(() => accueil = type),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                    vertical: 10),
+                                decoration: BoxDecoration(
+                                  color: selected
+                                      ? _teal
+                                      : Colors.transparent,
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                child: Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.center,
+                                  children: [
+                                    Icon(
+                                      type == 'Présentiel'
+                                          ? Icons.directions_walk
+                                          : Icons.calendar_today_outlined,
+                                      size: 16,
+                                      color: selected
+                                          ? Colors.white
+                                          : Colors.white
+                                              .withValues(alpha: 0.5),
+                                    ),
+                                    const SizedBox(width: 6),
+                                    Text(type,
+                                        style: TextStyle(
+                                          fontSize: 13,
+                                          fontWeight: selected
+                                              ? FontWeight.w600
+                                              : FontWeight.normal,
+                                          color: selected
+                                              ? Colors.white
+                                              : Colors.white
+                                                  .withValues(alpha: 0.5),
+                                        )),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          );
+                        }).toList(),
+                      ),
+                    ),
+
                   const SizedBox(height: 12),
-                  _DarkField(controller: clientCtrl, label: 'Nom du client'),
+                  _DarkField(
+                      controller: plaqueCtrl,
+                      label: 'Plaque du véhicule',
+                      hint: 'ex: CI-1234-A'),
                   const SizedBox(height: 12),
+                  _DarkField(
+                      controller: clientCtrl, label: 'Nom du client'),
+                  const SizedBox(height: 12),
+
+                  // Champs RDV uniquement
+                  if (estRDV) ...[
+                    _DarkField(
+                      controller: telCtrl,
+                      label: 'Téléphone',
+                      hint: '+225 07 00 00 00',
+                    ),
+                    const SizedBox(height: 12),
+
+                    // Date RDV
+                    GestureDetector(
+                      onTap: () async {
+                        final picked = await showDatePicker(
+                          context: context,
+                          initialDate: dateRDV ?? DateTime.now(),
+                          firstDate: DateTime.now(),
+                          lastDate: DateTime.now()
+                              .add(const Duration(days: 365)),
+                        );
+                        if (picked != null) {
+                          setModalState(() => dateRDV = picked);
+                        }
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 14, vertical: 14),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.05),
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(
+                              color:
+                                  Colors.white.withValues(alpha: 0.2)),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(Icons.calendar_today_outlined,
+                                size: 18,
+                                color:
+                                    Colors.white.withValues(alpha: 0.5)),
+                            const SizedBox(width: 10),
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text('Date du RDV',
+                                    style: TextStyle(
+                                        fontSize: 12,
+                                        color: Colors.white
+                                            .withValues(alpha: 0.5))),
+                                Text(
+                                  dateRDV != null
+                                      ? '${dateRDV!.day}/${dateRDV!.month}/${dateRDV!.year}'
+                                      : 'Choisir une date',
+                                  style: TextStyle(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w500,
+                                      color: dateRDV != null
+                                          ? Colors.white
+                                          : Colors.white
+                                              .withValues(alpha: 0.3)),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+
+                    // Heure RDV
+                    GestureDetector(
+                      onTap: () async {
+                        final picked = await showTimePicker(
+                          context: context,
+                          initialTime: TimeOfDay.now(),
+                        );
+                        if (picked != null) {
+                          setModalState(() => heureRDV =
+                              '${picked.hour.toString().padLeft(2, '0')}:${picked.minute.toString().padLeft(2, '0')}');
+                        }
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 14, vertical: 14),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.05),
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(
+                              color:
+                                  Colors.white.withValues(alpha: 0.2)),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(Icons.access_time_outlined,
+                                size: 18,
+                                color:
+                                    Colors.white.withValues(alpha: 0.5)),
+                            const SizedBox(width: 10),
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text('Heure du RDV',
+                                    style: TextStyle(
+                                        fontSize: 12,
+                                        color: Colors.white
+                                            .withValues(alpha: 0.5))),
+                                Text(
+                                  heureRDV.isNotEmpty
+                                      ? heureRDV
+                                      : 'Choisir une heure',
+                                  style: TextStyle(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w500,
+                                      color: heureRDV.isNotEmpty
+                                          ? Colors.white
+                                          : Colors.white
+                                              .withValues(alpha: 0.3)),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                  ],
+
                   _DarkDropdown<String>(
                     label: 'Service',
                     value: service,
                     items: _prix.keys.toList(),
-                    onChanged: (v) => setModalState(() => service = v!),
+                    onChanged: (v) =>
+                        setModalState(() => service = v!),
                   ),
                   const SizedBox(height: 12),
                   _DarkDropdown<String>(
                     label: 'Type de véhicule',
                     value: typeVehicule,
                     items: ['Voiture', 'Moto', 'SUV / Pickup'],
-                    onChanged: (v) => setModalState(() => typeVehicule = v!),
+                    onChanged: (v) =>
+                        setModalState(() => typeVehicule = v!),
                   ),
                   const SizedBox(height: 12),
                   _DarkDropdown<String>(
@@ -245,7 +450,8 @@ class _HistoriqueScreenState extends State<HistoriqueScreen> {
                       style: ElevatedButton.styleFrom(
                         backgroundColor: _teal,
                         foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        padding:
+                            const EdgeInsets.symmetric(vertical: 14),
                         shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12)),
                         elevation: 8,
@@ -256,30 +462,48 @@ class _HistoriqueScreenState extends State<HistoriqueScreen> {
                             clientCtrl.text.isEmpty) {
                           ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(
-                                content: Text('Plaque et client requis')),
+                                content:
+                                    Text('Plaque et client requis')),
+                          );
+                          return;
+                        }
+                        if (estRDV && dateRDV == null) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                                content: Text(
+                                    'Choisissez une date de RDV')),
                           );
                           return;
                         }
                         if (estModification) {
                           await _service.modifierLavage(lavage.id, {
-                            'plaque': plaqueCtrl.text.trim().toUpperCase(),
+                            'plaque':
+                                plaqueCtrl.text.trim().toUpperCase(),
                             'client': clientCtrl.text.trim(),
+                            'telephone': telCtrl.text.trim(),
                             'service': service,
                             'typeVehicule': typeVehicule,
                             'laveur': laveur,
                             'prix': prixAuto,
+                            'dateRDV': dateRDV?.toIso8601String(),
+                            'heureRDV': heureRDV,
                           });
                         } else {
                           await _service.ajouterLavage(Lavage(
                             id: '',
-                            plaque: plaqueCtrl.text.trim().toUpperCase(),
+                            plaque:
+                                plaqueCtrl.text.trim().toUpperCase(),
                             client: clientCtrl.text.trim(),
+                            telephone: telCtrl.text.trim(),
                             service: service,
                             prix: prixAuto,
                             statut: 'En attente',
                             typeVehicule: typeVehicule,
                             laveur: laveur,
+                            typeAccueil: accueil,
                             dateHeure: DateTime.now(),
+                            dateRDV: dateRDV,
+                            heureRDV: heureRDV,
                           ));
                         }
                         if (context.mounted) Navigator.pop(context);
@@ -310,7 +534,8 @@ class _HistoriqueScreenState extends State<HistoriqueScreen> {
         title: const Text('Déconnexion',
             style: TextStyle(color: Colors.white)),
         content: Text('Veux-tu vraiment te déconnecter ?',
-            style: TextStyle(color: Colors.white.withValues(alpha: 0.7))),
+            style: TextStyle(
+                color: Colors.white.withValues(alpha: 0.7))),
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(context, false),
@@ -349,14 +574,32 @@ class _HistoriqueScreenState extends State<HistoriqueScreen> {
           ),
         ],
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => _showFormulaireLavage(context),
-        backgroundColor: _teal,
-        foregroundColor: Colors.white,
-        elevation: 8,
-        icon: const Icon(Icons.add),
-        label: const Text('Nouveau lavage',
-            style: TextStyle(fontWeight: FontWeight.w600)),
+      floatingActionButton: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          FloatingActionButton.extended(
+            heroTag: 'rdv',
+            onPressed: () =>
+                _showFormulaireLavage(context, typeAccueil: 'RDV'),
+            backgroundColor: _violet,
+            foregroundColor: Colors.white,
+            icon: const Icon(Icons.calendar_today_outlined),
+            label: const Text('RDV',
+                style: TextStyle(fontWeight: FontWeight.w600)),
+          ),
+          const SizedBox(height: 10),
+          FloatingActionButton.extended(
+            heroTag: 'presentiel',
+            onPressed: () => _showFormulaireLavage(context,
+                typeAccueil: 'Présentiel'),
+            backgroundColor: _teal,
+            foregroundColor: Colors.white,
+            elevation: 8,
+            icon: const Icon(Icons.add),
+            label: const Text('Présentiel',
+                style: TextStyle(fontWeight: FontWeight.w600)),
+          ),
+        ],
       ),
       body: StreamBuilder<List<Lavage>>(
         stream: _service.getLavages(),
@@ -384,6 +627,10 @@ class _HistoriqueScreenState extends State<HistoriqueScreen> {
               .where((l) => l.statut == 'En attente').toList();
           final enCours = lavagesFiltres
               .where((l) => l.statut == 'En cours').toList();
+          final presentiels = enAttente
+              .where((l) => l.typeAccueil == 'Présentiel').toList();
+          final rdvs = enAttente
+              .where((l) => l.typeAccueil == 'RDV').toList();
 
           return Column(
             children: [
@@ -398,14 +645,19 @@ class _HistoriqueScreenState extends State<HistoriqueScreen> {
                         horizontal: 16, vertical: 8),
                     itemCount: _services.length,
                     itemBuilder: (context, i) {
-                      final selected = _filtreService == _services[i] ||
-                          (_filtreService.isEmpty && _services[i] == 'Tous');
+                      final selected =
+                          _filtreService == _services[i] ||
+                              (_filtreService.isEmpty &&
+                                  _services[i] == 'Tous');
                       return GestureDetector(
                         onTap: () => setState(() => _filtreService =
-                            _services[i] == 'Tous' ? '' : _services[i]),
+                            _services[i] == 'Tous'
+                                ? ''
+                                : _services[i]),
                         child: Container(
                           margin: const EdgeInsets.only(right: 8),
-                          padding: const EdgeInsets.symmetric(horizontal: 14),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 14),
                           decoration: BoxDecoration(
                             color: selected
                                 ? _teal
@@ -442,26 +694,29 @@ class _HistoriqueScreenState extends State<HistoriqueScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Section En attente
+
+                      // ── Présentiels ──────────────────────────
                       _SectionHeader(
-                        titre: 'Lavages à venir',
-                        count: enAttente.length,
+                        titre: 'Présentiels',
+                        count: presentiels.length,
                         couleur: _badgeAttente,
                         bgColor: _bgAttente,
-                        icon: Icons.hourglass_empty,
+                        icon: Icons.directions_walk,
                       ),
                       const SizedBox(height: 10),
-                      if (enAttente.isEmpty)
-                        _EmptyCard(message: 'Aucun lavage en attente')
+                      if (presentiels.isEmpty)
+                        _EmptyCard(
+                            message: 'Aucun présentiel en attente')
                       else
-                        ...enAttente.map((l) => _LavageCard(
+                        ...presentiels.map((l) => _LavageCard(
                               lavage: l,
                               service: _service,
                               accentColor: _badgeAttente,
                               onModifier: () async {
                                 final ok = await _verifierSuperviseur();
                                 if (ok && context.mounted) {
-                                  _showFormulaireLavage(context, lavage: l);
+                                  _showFormulaireLavage(context,
+                                      lavage: l);
                                 }
                               },
                               onSupprimer: () async {
@@ -472,7 +727,39 @@ class _HistoriqueScreenState extends State<HistoriqueScreen> {
 
                       const SizedBox(height: 20),
 
-                      // Section En cours
+                      // ── Rendez-vous ───────────────────────────
+                      _SectionHeader(
+                        titre: 'Rendez-vous',
+                        count: rdvs.length,
+                        couleur: _violet,
+                        bgColor: _bgRDV,
+                        icon: Icons.calendar_today_outlined,
+                      ),
+                      const SizedBox(height: 10),
+                      if (rdvs.isEmpty)
+                        _EmptyCard(
+                            message: 'Aucun rendez-vous en attente')
+                      else
+                        ...rdvs.map((l) => _LavageCard(
+                              lavage: l,
+                              service: _service,
+                              accentColor: _violet,
+                              onModifier: () async {
+                                final ok = await _verifierSuperviseur();
+                                if (ok && context.mounted) {
+                                  _showFormulaireLavage(context,
+                                      lavage: l);
+                                }
+                              },
+                              onSupprimer: () async {
+                                final ok = await _verifierSuperviseur();
+                                if (ok) _confirmerSuppression(l.id);
+                              },
+                            )),
+
+                      const SizedBox(height: 20),
+
+                      // ── Lavages en cours ──────────────────────
                       _SectionHeader(
                         titre: 'Lavages en cours',
                         count: enCours.length,
@@ -491,7 +778,8 @@ class _HistoriqueScreenState extends State<HistoriqueScreen> {
                               onModifier: () async {
                                 final ok = await _verifierSuperviseur();
                                 if (ok && context.mounted) {
-                                  _showFormulaireLavage(context, lavage: l);
+                                  _showFormulaireLavage(context,
+                                      lavage: l);
                                 }
                               },
                               onSupprimer: () async {
@@ -513,7 +801,7 @@ class _HistoriqueScreenState extends State<HistoriqueScreen> {
   }
 }
 
-// Widgets utilitaires
+// ── Widgets utilitaires ────────────────────────────────────────────────────
 
 class _DarkField extends StatelessWidget {
   final TextEditingController controller;
@@ -534,11 +822,14 @@ class _DarkField extends StatelessWidget {
       decoration: InputDecoration(
         labelText: label,
         hintText: hint,
-        labelStyle: TextStyle(color: Colors.white.withValues(alpha: 0.6)),
-        hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.3)),
+        labelStyle:
+            TextStyle(color: Colors.white.withValues(alpha: 0.6)),
+        hintStyle:
+            TextStyle(color: Colors.white.withValues(alpha: 0.3)),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
-          borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.2)),
+          borderSide:
+              BorderSide(color: Colors.white.withValues(alpha: 0.2)),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
@@ -574,13 +865,15 @@ class _DarkDropdown<T> extends StatelessWidget {
       style: const TextStyle(color: Colors.white),
       decoration: InputDecoration(
         labelText: label,
-        labelStyle: TextStyle(color: Colors.white.withValues(alpha: 0.6)),
+        labelStyle:
+            TextStyle(color: Colors.white.withValues(alpha: 0.6)),
         prefixIcon: icon != null
             ? Icon(icon, color: Colors.white.withValues(alpha: 0.5))
             : null,
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
-          borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.2)),
+          borderSide:
+              BorderSide(color: Colors.white.withValues(alpha: 0.2)),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
@@ -619,7 +912,8 @@ class _SectionHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      padding:
+          const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
         color: bgColor,
         borderRadius: BorderRadius.circular(12),
@@ -636,7 +930,8 @@ class _SectionHeader extends StatelessWidget {
                   color: couleur)),
           const Spacer(),
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+            padding: const EdgeInsets.symmetric(
+                horizontal: 10, vertical: 3),
             decoration: BoxDecoration(
               color: couleur,
               borderRadius: BorderRadius.circular(99),
@@ -665,12 +960,14 @@ class _EmptyCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: const Color(0xFF0d1b2a),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.07)),
+        border: Border.all(
+            color: Colors.white.withValues(alpha: 0.07)),
       ),
       child: Text(message,
           textAlign: TextAlign.center,
           style: TextStyle(
-              color: Colors.white.withValues(alpha: 0.3), fontSize: 13)),
+              color: Colors.white.withValues(alpha: 0.3),
+              fontSize: 13)),
     );
   }
 }
@@ -720,7 +1017,8 @@ class _LavageCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: const Color(0xFF0d1b2a),
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: accentColor.withValues(alpha: 0.25)),
+        border:
+            Border.all(color: accentColor.withValues(alpha: 0.25)),
         boxShadow: [
           BoxShadow(
             color: accentColor.withValues(alpha: 0.08),
@@ -759,21 +1057,57 @@ class _LavageCard extends StatelessWidget {
                       const SizedBox(height: 2),
                       Text(lavage.client,
                           style: TextStyle(
-                              color: Colors.white.withValues(alpha: 0.6),
+                              color:
+                                  Colors.white.withValues(alpha: 0.6),
                               fontSize: 13)),
-                      Text('${lavage.service} · ${lavage.typeVehicule}',
+                      Text(
+                          '${lavage.service} · ${lavage.typeVehicule}',
                           style: TextStyle(
-                              color: Colors.white.withValues(alpha: 0.4),
+                              color:
+                                  Colors.white.withValues(alpha: 0.4),
                               fontSize: 12)),
                       if (lavage.laveur.isNotEmpty)
                         Row(children: [
                           Icon(Icons.person_outline,
                               size: 12,
-                              color: Colors.white.withValues(alpha: 0.4)),
+                              color: Colors.white
+                                  .withValues(alpha: 0.4)),
                           const SizedBox(width: 4),
                           Text(lavage.laveur,
                               style: TextStyle(
-                                  color: Colors.white.withValues(alpha: 0.4),
+                                  color: Colors.white
+                                      .withValues(alpha: 0.4),
+                                  fontSize: 12)),
+                        ]),
+                      // Infos RDV
+                      if (lavage.typeAccueil == 'RDV' &&
+                          lavage.dateRDV != null)
+                        Row(children: [
+                          Icon(Icons.calendar_today_outlined,
+                              size: 12,
+                              color: const Color(0xFF818cf8)
+                                  .withValues(alpha: 0.8)),
+                          const SizedBox(width: 4),
+                          Text(
+                            'RDV : ${lavage.dateRDV!.day}/${lavage.dateRDV!.month}/${lavage.dateRDV!.year}'
+                            '${lavage.heureRDV.isNotEmpty ? ' à ${lavage.heureRDV}' : ''}',
+                            style: const TextStyle(
+                                color: Color(0xFF818cf8),
+                                fontSize: 12,
+                                fontWeight: FontWeight.w500),
+                          ),
+                        ]),
+                      if (lavage.telephone.isNotEmpty)
+                        Row(children: [
+                          Icon(Icons.phone_outlined,
+                              size: 12,
+                              color: Colors.white
+                                  .withValues(alpha: 0.4)),
+                          const SizedBox(width: 4),
+                          Text(lavage.telephone,
+                              style: TextStyle(
+                                  color: Colors.white
+                                      .withValues(alpha: 0.4),
                                   fontSize: 12)),
                         ]),
                     ],
@@ -791,7 +1125,8 @@ class _LavageCard extends StatelessWidget {
                     Text(
                       '${lavage.dateHeure.hour}:${lavage.dateHeure.minute.toString().padLeft(2, '0')}',
                       style: TextStyle(
-                          color: Colors.white.withValues(alpha: 0.4),
+                          color:
+                              Colors.white.withValues(alpha: 0.4),
                           fontSize: 12),
                     ),
                   ],
@@ -818,12 +1153,16 @@ class _LavageCard extends StatelessWidget {
                     icon: const Icon(Icons.edit_outlined, size: 15),
                     label: const Text('Modifier'),
                     style: TextButton.styleFrom(
-                      foregroundColor: Colors.white.withValues(alpha: 0.6),
-                      padding: const EdgeInsets.symmetric(vertical: 10),
+                      foregroundColor:
+                          Colors.white.withValues(alpha: 0.6),
+                      padding:
+                          const EdgeInsets.symmetric(vertical: 10),
                     ),
                   ),
                 ),
-                Container(width: 1, height: 30,
+                Container(
+                    width: 1,
+                    height: 30,
                     color: Colors.white.withValues(alpha: 0.07)),
                 Expanded(
                   flex: 2,
@@ -831,14 +1170,18 @@ class _LavageCard extends StatelessWidget {
                     onPressed: _changerStatut,
                     icon: Icon(_nextIcon, size: 18),
                     label: Text(_nextStatut,
-                        style: const TextStyle(fontWeight: FontWeight.w600)),
+                        style: const TextStyle(
+                            fontWeight: FontWeight.w600)),
                     style: TextButton.styleFrom(
                       foregroundColor: accentColor,
-                      padding: const EdgeInsets.symmetric(vertical: 10),
+                      padding:
+                          const EdgeInsets.symmetric(vertical: 10),
                     ),
                   ),
                 ),
-                Container(width: 1, height: 30,
+                Container(
+                    width: 1,
+                    height: 30,
                     color: Colors.white.withValues(alpha: 0.07)),
                 Expanded(
                   child: TextButton.icon(
@@ -846,8 +1189,10 @@ class _LavageCard extends StatelessWidget {
                     icon: const Icon(Icons.delete_outline, size: 15),
                     label: const Text('Suppr.'),
                     style: TextButton.styleFrom(
-                      foregroundColor: Colors.red.withValues(alpha: 0.7),
-                      padding: const EdgeInsets.symmetric(vertical: 10),
+                      foregroundColor:
+                          Colors.red.withValues(alpha: 0.7),
+                      padding:
+                          const EdgeInsets.symmetric(vertical: 10),
                     ),
                   ),
                 ),

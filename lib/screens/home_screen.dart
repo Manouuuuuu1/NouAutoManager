@@ -46,7 +46,7 @@ class HomeScreen extends StatelessWidget {
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text('ProWash',
+                        const Text('Select Car Wash',
                             style: TextStyle(
                               fontSize: 22,
                               fontWeight: FontWeight.w800,
@@ -157,7 +157,7 @@ _SectionBubble(
           children: [
             Icon(Icons.local_car_wash, size: 40, color: Color(0xFF185FA5)),
             SizedBox(height: 12),
-            Text('ProWash',
+            Text('Select Car Wash',
                 style: TextStyle(fontWeight: FontWeight.w700, fontSize: 18)),
             SizedBox(height: 4),
             Text('Version 1.0.0', style: TextStyle(color: Colors.grey)),

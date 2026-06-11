@@ -44,43 +44,43 @@ class DefaultFirebaseOptions {
     apiKey: 'AIzaSyAitxmZeXlVGzsF-vABAWG26YlNhRxeT7o',
     appId: '1:775925007414:web:39e335e0563acc3d1f0497',
     messagingSenderId: '775925007414',
-    projectId: 'prowash-3afc5',
-    authDomain: 'prowash-3afc5.firebaseapp.com',
-    storageBucket: 'prowash-3afc5.firebasestorage.app',
+    projectId: 'Select Car Wash-3afc5',
+    authDomain: 'Select Car Wash-3afc5.firebaseapp.com',
+    storageBucket: 'Select Car Wash-3afc5.firebasestorage.app',
   );
 
   static const FirebaseOptions android = FirebaseOptions(
     apiKey: 'AIzaSyC2gQQdsM7B9FSytd4saTQT19ynRBFJJAc',
     appId: '1:775925007414:android:2c727a273753d59f1f0497',
     messagingSenderId: '775925007414',
-    projectId: 'prowash-3afc5',
-    storageBucket: 'prowash-3afc5.firebasestorage.app',
+    projectId: 'Select Car Wash-3afc5',
+    storageBucket: 'Select Car Wash-3afc5.firebasestorage.app',
   );
 
   static const FirebaseOptions ios = FirebaseOptions(
     apiKey: 'AIzaSyDsxbUgfFMx7GdbYfHvEL_ibCwEY9xryPQ',
     appId: '1:775925007414:ios:19501eae17a14fce1f0497',
     messagingSenderId: '775925007414',
-    projectId: 'prowash-3afc5',
-    storageBucket: 'prowash-3afc5.firebasestorage.app',
-    iosBundleId: 'com.example.prowash',
+    projectId: 'Select Car Wash-3afc5',
+    storageBucket: 'Select Car Wash-3afc5.firebasestorage.app',
+    iosBundleId: 'com.example.Select Car Wash',
   );
 
   static const FirebaseOptions macos = FirebaseOptions(
     apiKey: 'AIzaSyDsxbUgfFMx7GdbYfHvEL_ibCwEY9xryPQ',
     appId: '1:775925007414:ios:19501eae17a14fce1f0497',
     messagingSenderId: '775925007414',
-    projectId: 'prowash-3afc5',
-    storageBucket: 'prowash-3afc5.firebasestorage.app',
-    iosBundleId: 'com.example.prowash',
+    projectId: 'Select Car Wash-3afc5',
+    storageBucket: 'Select Car Wash-3afc5.firebasestorage.app',
+    iosBundleId: 'com.example.Select Car Wash',
   );
 
   static const FirebaseOptions windows = FirebaseOptions(
     apiKey: 'AIzaSyAitxmZeXlVGzsF-vABAWG26YlNhRxeT7o',
     appId: '1:775925007414:web:f6741b972df80b471f0497',
     messagingSenderId: '775925007414',
-    projectId: 'prowash-3afc5',
-    authDomain: 'prowash-3afc5.firebaseapp.com',
-    storageBucket: 'prowash-3afc5.firebasestorage.app',
+    projectId: 'Select Car Wash-3afc5',
+    authDomain: 'Select Car Wash-3afc5.firebaseapp.com',
+    storageBucket: 'Select Car Wash-3afc5.firebasestorage.app',
   );
 }

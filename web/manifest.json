@@ -1,6 +1,6 @@
 {
-    "name": "prowash",
-    "short_name": "prowash",
+    "name": "Select Car Wash",
+    "short_name": "Select Car Wash",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",

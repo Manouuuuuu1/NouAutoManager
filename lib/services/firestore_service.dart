@@ -35,7 +35,7 @@ class FirestoreService {
         .map((snap) =>
             snap.docs.map((d) => Lavage.fromMap(d.id, d.data())).toList());
   }
-
+  
   Future<void> mettreAJourStatut(String id, String statut) async {
     await _db.collection('lavages').doc(id).update({'statut': statut});
   }
