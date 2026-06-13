@@ -23,7 +23,7 @@ class AutoWashApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Select Car Wash',
+      title: 'AZ Washing Management',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF185FA5)),
@@ -62,13 +62,6 @@ class _MainScreenState extends State<MainScreen> {
   void changerOnglet(int index) {
     setState(() => _currentIndex = index);
   }
-
-  List<Widget> get _screens => [
-    HomeScreen(onNavigate: changerOnglet),
-    HistoriqueScreen(onHome: () => changerOnglet(0)),
-    DashboardScreen(onHome: () => changerOnglet(0)),
-    LaveursScreen(onHome: () => changerOnglet(0)),
-  ];
 
   @override
 Widget build(BuildContext context) {

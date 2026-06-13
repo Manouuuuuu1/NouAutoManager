@@ -1,4 +1,4 @@
-package com.example.SelectCarWash
+package com.example.AZWashingManagement
 
 import io.flutter.embedding.android.FlutterActivity
 

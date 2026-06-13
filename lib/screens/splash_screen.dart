@@ -196,7 +196,7 @@ class _SplashScreenState extends State<SplashScreen>
                       ),
                       child: Column(
                         children: [
-                          const Text('Select Car Wash',
+                          const Text('AZ Washing Management',
                               style: TextStyle(
                                 fontSize: 34,
                                 fontWeight: FontWeight.w800,

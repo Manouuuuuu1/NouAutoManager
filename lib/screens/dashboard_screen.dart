@@ -1205,7 +1205,9 @@ Builder(builder: (context) {
                             'prix': prixAuto,
                           });
                         }
-                        if (context.mounted) Navigator.pop(context);
+                        if (context.mounted) {
+  Navigator.of(context, rootNavigator: true).pop();
+}
                       },
                       child: const Text('Enregistrer les modifications',
                           style: TextStyle(fontSize: 15)),

@@ -1,6 +1,6 @@
 {
-    "name": "Select Car Wash",
-    "short_name": "Select Car Wash",
+    "name": "AZ Washing Management",
+    "short_name": "AZ Washing Management",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",

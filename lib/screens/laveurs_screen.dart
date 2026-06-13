@@ -343,8 +343,9 @@ class _EmployesTab extends StatelessWidget {
                           dateEmbauche: DateTime.now(),
                         ));
                       }
-                      if (context.mounted)
-                        Navigator.pop(context);
+                      if (context.mounted) {
+  Navigator.of(context, rootNavigator: true).pop();
+}
                     },
                     child: Text(
                       estModification
@@ -977,7 +978,7 @@ class _BulletinTabState extends State<_BulletinTab> {
                               MainAxisAlignment
                                   .spaceBetween,
                           children: [
-                            const Text('Select Car Wash',
+                            const Text('AZ Washing Management',
                                 style: TextStyle(
                                     fontWeight:
                                         FontWeight.w700,

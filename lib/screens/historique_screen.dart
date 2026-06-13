@@ -505,7 +505,9 @@ class _HistoriqueScreenState extends State<HistoriqueScreen> {
                             heureRDV: heureRDV,
                           ));
                         }
-                        if (context.mounted) Navigator.pop(context);
+                        if (context.mounted) {
+  Navigator.of(context, rootNavigator: true).pop();
+}
                       },
                       child: Text(
                         estModification

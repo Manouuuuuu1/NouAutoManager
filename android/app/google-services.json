@@ -1,15 +1,15 @@
 {
   "project_info": {
     "project_number": "775925007414",
-    "project_id": "Select Car Wash-3afc5",
-    "storage_bucket": "Select Car Wash-3afc5.firebasestorage.app"
+    "project_id": "AZ Washing Management-3afc5",
+    "storage_bucket": "AZ Washing Management-3afc5.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
         "mobilesdk_app_id": "1:775925007414:android:2c727a273753d59f1f0497",
         "android_client_info": {
-          "package_name": "com.example.SelectCarWash"
+          "package_name": "com.example.AZWashingManagement"
         }
       },
       "oauth_client": [],
