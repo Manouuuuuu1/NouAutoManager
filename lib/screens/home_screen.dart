@@ -98,7 +98,7 @@ class HomeScreen extends StatelessWidget {
   crossAxisCount: 2,
   crossAxisSpacing: 10,
   mainAxisSpacing: 10,
-  childAspectRatio: 3.5,
+  childAspectRatio: 1.1,
   shrinkWrap: true,
   physics: const ScrollPhysics(),
   children: [
