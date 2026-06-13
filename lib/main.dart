@@ -7,6 +7,7 @@ import 'screens/home_screen.dart';
 import 'screens/historique_screen.dart';
 import 'screens/dashboard_screen.dart';
 import 'screens/laveurs_screen.dart';
+import 'services/cache_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -36,8 +37,12 @@ class AutoWashApp extends StatelessWidget {
               body: Center(child: CircularProgressIndicator()),
             );
           }
-          if (snapshot.hasData) return const MainScreen();
-          return const SplashScreen();
+          if (snapshot.hasData) {
+  CacheService().init();
+  return const MainScreen();
+}
+CacheService().dispose();
+return const SplashScreen();
         },
       ),
     );
@@ -66,39 +71,49 @@ class _MainScreenState extends State<MainScreen> {
   ];
 
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      body: _screens[_currentIndex],
-      // Barre visible uniquement hors page d'accueil
-      bottomNavigationBar: _currentIndex == 0 ? null : BottomNavigationBar(
-        currentIndex: _currentIndex,
-        onTap: (i) => setState(() => _currentIndex = i),
-        selectedItemColor: const Color(0xFF185FA5),
-        unselectedItemColor: Colors.grey,
-        type: BottomNavigationBarType.fixed,
-        items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.home_outlined),
-            activeIcon: Icon(Icons.home),
-            label: 'Accueil',
+Widget build(BuildContext context) {
+  return Scaffold(
+    // IndexedStack garde toutes les pages en mémoire
+    // au lieu de les détruire/recréer à chaque navigation
+    body: IndexedStack(
+      index: _currentIndex,
+      children: [
+        HomeScreen(onNavigate: changerOnglet),
+        HistoriqueScreen(onHome: () => changerOnglet(0)),
+        DashboardScreen(onHome: () => changerOnglet(0)),
+        LaveursScreen(onHome: () => changerOnglet(0)),
+      ],
+    ),
+    bottomNavigationBar: _currentIndex == 0
+        ? null
+        : BottomNavigationBar(
+            currentIndex: _currentIndex,
+            onTap: (i) => setState(() => _currentIndex = i),
+            selectedItemColor: const Color(0xFF185FA5),
+            unselectedItemColor: Colors.grey,
+            type: BottomNavigationBarType.fixed,
+            items: const [
+              BottomNavigationBarItem(
+                icon: Icon(Icons.home_outlined),
+                activeIcon: Icon(Icons.home),
+                label: 'Accueil',
+              ),
+              BottomNavigationBarItem(
+                icon: Icon(Icons.add_circle_outline),
+                activeIcon: Icon(Icons.add_circle),
+                label: 'Enregistrement',
+              ),
+              BottomNavigationBarItem(
+                icon: Icon(Icons.dashboard_outlined),
+                activeIcon: Icon(Icons.dashboard),
+                label: 'Tableau de bord',
+              ),
+              BottomNavigationBarItem(
+                icon: Icon(Icons.people_outline),
+                activeIcon: Icon(Icons.people),
+                label: 'Laveurs',
+              ),
+            ],
           ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.add_circle_outline),
-            activeIcon: Icon(Icons.add_circle),
-            label: 'Enregistrement',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.dashboard_outlined),
-            activeIcon: Icon(Icons.dashboard),
-            label: 'Tableau de bord',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.people_outline),
-            activeIcon: Icon(Icons.people),
-            label: 'Laveurs',
-          ),
-        ],
-      ),
-    );
-  }
-}
+  );
+}   }
