@@ -357,40 +357,271 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
                 // Métriques
                 GridView.count(
-                  crossAxisCount: 2,
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  crossAxisSpacing: 12,
-                  mainAxisSpacing: 12,
-                  childAspectRatio: 1.6,
-                  children: [
-                    _MetricCard(
-                      label: 'Total lavages',
-                      value: '${lavagesFiltres.length}',
-                      icon: Icons.local_car_wash,
-                      color: const Color(0xFF185FA5),
-                    ),
-                    _MetricCard(
-                      label: 'Recettes',
-                      value: '$recettes F',
-                      icon: Icons.payments_outlined,
-                      color: const Color(0xFF3B6D11),
-                    ),
-                    _MetricCard(
-                      label: 'En attente',
-                      value: '$enAttente',
-                      icon: Icons.hourglass_empty,
-                      color: const Color(0xFF854F0B),
-                    ),
-                    _MetricCard(
-                      label: 'En cours',
-                      value: '$enCours',
-                      icon: Icons.autorenew,
-                      color: const Color(0xFF3C3489),
-                    ),
-                  ],
-                ),
+  crossAxisCount: 2,
+  shrinkWrap: true,
+  physics: const NeverScrollableScrollPhysics(),
+  crossAxisSpacing: 12,
+  mainAxisSpacing: 12,
+  childAspectRatio: 1.6,
+  children: [
+    _MetricCard(
+      label: 'Total lavages',
+      value: '${lavagesFiltres.length}',
+      icon: Icons.local_car_wash,
+      color: const Color(0xFF185FA5),
+    ),
+    _MetricCard(
+      label: 'Recettes',
+      value: '$recettes F',
+      icon: Icons.payments_outlined,
+      color: const Color(0xFF3B6D11),
+    ),
+    _MetricCard(
+      label: 'En attente',
+      value: '$enAttente',
+      icon: Icons.hourglass_empty,
+      color: const Color(0xFF854F0B),
+    ),
+    _MetricCard(
+      label: 'En cours',
+      value: '$enCours',
+      icon: Icons.autorenew,
+      color: const Color(0xFF3C3489),
+    ),
+    // Temps moyen calculé automatiquement
+    Builder(builder: (context) {
+      final lavagesAvecDuree = lavagesFiltres
+          .where((l) => l.dureeLavageMinutes != null)
+          .toList();
+      final tempsMoyen = lavagesAvecDuree.isEmpty
+          ? '—'
+          : '${(lavagesAvecDuree.fold(0, (sum, l) => sum + l.dureeLavageMinutes!) / lavagesAvecDuree.length).toStringAsFixed(0)} min';
+      return _MetricCard(
+        label: 'Temps moyen lavage',
+        value: tempsMoyen,
+        icon: Icons.timer_outlined,
+        color: const Color(0xFF0891b2),
+      );
+    }),
+    Builder(builder: (context) {
+      final termines = lavagesFiltres
+          .where((l) => l.statut == 'Terminé').length;
+      return _MetricCard(
+        label: 'Lavages terminés',
+        value: '$termines',
+        icon: Icons.check_circle_outline,
+        color: const Color(0xFF3B6D11),
+      );
+    }),
+  ],
+),
+const SizedBox(height: 20),
 
+// Temps moyen par type de lavage
+const Text('Temps moyen par type de lavage',
+    style: TextStyle(
+        fontSize: 15, fontWeight: FontWeight.w600)),
+const SizedBox(height: 12),
+Builder(builder: (context) {
+  final services = [
+    'Lavage simple',
+    'Lavage complet',
+    'Lavage + intérieur',
+    'Cire & polish',
+  ];
+
+  final Map<String, Color> serviceColors = {
+    'Lavage simple': const Color(0xFF185FA5),
+    'Lavage complet': const Color(0xFF3B6D11),
+    'Lavage + intérieur': const Color(0xFF854F0B),
+    'Cire & polish': const Color(0xFF3C3489),
+  };
+
+  return Container(
+    decoration: BoxDecoration(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(14),
+      border: Border.all(color: Colors.grey.shade200),
+    ),
+    child: Column(
+      children: [
+        // En-tête
+        Container(
+          padding: const EdgeInsets.symmetric(
+              horizontal: 16, vertical: 10),
+          decoration: BoxDecoration(
+            color: Colors.grey.shade50,
+            borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(14)),
+            border: Border(
+                bottom: BorderSide(
+                    color: Colors.grey.shade200)),
+          ),
+          child: const Row(
+            children: [
+              Expanded(
+                flex: 3,
+                child: Text('Service',
+                    style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.grey))),
+              Expanded(
+                child: Text('Lavages',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.grey))),
+              Expanded(
+                flex: 2,
+                child: Text('Tps moyen',
+                    textAlign: TextAlign.right,
+                    style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.grey))),
+            ],
+          ),
+        ),
+
+        // Lignes par service
+        ...services.map((service) {
+          final lavagesService = lavagesFiltres
+              .where((l) =>
+                  l.service == service &&
+                  l.dureeLavageMinutes != null)
+              .toList();
+          final nbTotal = lavagesFiltres
+              .where((l) => l.service == service)
+              .length;
+          final tempsMoyen = lavagesService.isEmpty
+              ? '—'
+              : '${(lavagesService.fold(0, (sum, l) => sum + l.dureeLavageMinutes!) / lavagesService.length).toStringAsFixed(0)} min';
+          final color =
+              serviceColors[service] ?? Colors.grey;
+
+          return Container(
+            padding: const EdgeInsets.symmetric(
+                horizontal: 16, vertical: 12),
+            decoration: BoxDecoration(
+              border: Border(
+                  bottom: BorderSide(
+                      color: Colors.grey.shade100)),
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  flex: 3,
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 10,
+                        height: 10,
+                        decoration: BoxDecoration(
+                          color: color,
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(service,
+                            style: const TextStyle(
+                                fontSize: 12)),
+                      ),
+                    ],
+                  ),
+                ),
+                Expanded(
+                  child: Text('$nbTotal',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: color)),
+                ),
+                Expanded(
+                  flex: 2,
+                  child: Row(
+                    mainAxisAlignment:
+                        MainAxisAlignment.end,
+                    children: [
+                      if (tempsMoyen != '—')
+                        const Icon(
+                            Icons.timer_outlined,
+                            size: 13,
+                            color: Color(0xFF4ade80)),
+                      const SizedBox(width: 4),
+                      Text(
+                        tempsMoyen,
+                        textAlign: TextAlign.right,
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: tempsMoyen == '—'
+                              ? Colors.grey
+                              : const Color(0xFF4ade80),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          );
+        }),
+
+        // Ligne total
+        Container(
+          padding: const EdgeInsets.symmetric(
+              horizontal: 16, vertical: 12),
+          decoration: BoxDecoration(
+            color: Colors.grey.shade50,
+            borderRadius: const BorderRadius.vertical(
+                bottom: Radius.circular(14)),
+          ),
+          child: Row(
+            children: [
+              const Expanded(
+                flex: 3,
+                child: Text('MOYENNE GLOBALE',
+                    style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700)),
+              ),
+              Expanded(
+                child: Text(
+                    '${lavagesFiltres.length}',
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700)),
+              ),
+              Expanded(
+                flex: 2,
+                child: Builder(builder: (context) {
+                  final avecDuree = lavagesFiltres
+                      .where((l) =>
+                          l.dureeLavageMinutes != null)
+                      .toList();
+                  final global = avecDuree.isEmpty
+                      ? '—'
+                      : '${(avecDuree.fold(0, (sum, l) => sum + l.dureeLavageMinutes!) / avecDuree.length).toStringAsFixed(0)} min';
+                  return Text(global,
+                      textAlign: TextAlign.right,
+                      style: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                          color: Color(0xFF4ade80)));
+                }),
+              ),
+            ],
+          ),
+        ),
+      ],
+    ),
+  );
+}),
                 const SizedBox(height: 20),
 
                 // Graphique donut
@@ -1056,13 +1287,6 @@ class _LavageItem extends StatelessWidget {
     }
   }
 
-  void _changerStatut() async {
-    final statuts = ['En attente', 'En cours', 'Terminé'];
-    final idx = statuts.indexOf(lavage.statut);
-    final next = statuts[(idx + 1) % statuts.length];
-    await service.mettreAJourStatut(lavage.id, next);
-  }
-
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -1112,22 +1336,50 @@ class _LavageItem extends StatelessWidget {
                       style: const TextStyle(
                           fontWeight: FontWeight.w600, fontSize: 13)),
                   const SizedBox(height: 4),
-                  GestureDetector(
-                    onTap: _changerStatut,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 8, vertical: 3),
-                      decoration: BoxDecoration(
-                        color: _statusColor.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(99),
-                        border: Border.all(
-                            color: _statusColor.withValues(alpha: 0.3)),
-                      ),
-                      child: Text(lavage.statut,
-                          style: TextStyle(
-                              color: _statusColor, fontSize: 11)),
-                    ),
-                  ),
+                  Column(
+  crossAxisAlignment: CrossAxisAlignment.start,
+  children: [
+    Text(
+      '${lavage.dateHeure.day}/${lavage.dateHeure.month}/${lavage.dateHeure.year}',
+      style: const TextStyle(color: Colors.grey, fontSize: 11),
+    ),
+    if (lavage.debutLavage != null)
+      Row(children: [
+        const Icon(Icons.play_arrow_rounded,
+            size: 11, color: Color(0xFF185FA5)),
+        const SizedBox(width: 3),
+        Text(
+          'Début : ${lavage.debutLavage!.hour}:${lavage.debutLavage!.minute.toString().padLeft(2, '0')}',
+          style: const TextStyle(
+              color: Color(0xFF185FA5), fontSize: 11),
+        ),
+      ]),
+    if (lavage.finLavage != null)
+      Row(children: [
+        const Icon(Icons.check_circle_outline,
+            size: 11, color: Color(0xFF3B6D11)),
+        const SizedBox(width: 3),
+        Text(
+          'Fin : ${lavage.finLavage!.hour}:${lavage.finLavage!.minute.toString().padLeft(2, '0')}',
+          style: const TextStyle(
+              color: Color(0xFF3B6D11), fontSize: 11),
+        ),
+      ]),
+    if (lavage.dureeLavageMinutes != null)
+      Row(children: [
+        const Icon(Icons.timer_outlined,
+            size: 11, color: Color(0xFF4ade80)),
+        const SizedBox(width: 3),
+        Text(
+          '${lavage.dureeLavageMinutes} min',
+          style: const TextStyle(
+              color: Color(0xFF4ade80),
+              fontSize: 11,
+              fontWeight: FontWeight.w600),
+        ),
+      ]),
+  ],
+),
                 ],
               ),
             ],

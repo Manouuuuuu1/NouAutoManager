@@ -37,8 +37,18 @@ class FirestoreService {
   }
   
   Future<void> mettreAJourStatut(String id, String statut) async {
-    await _db.collection('lavages').doc(id).update({'statut': statut});
+  final Map<String, dynamic> data = {'statut': statut};
+  final now = DateTime.now().toIso8601String();
+
+  // Enregistrer automatiquement les timestamps
+  if (statut == 'En cours') {
+    data['debutLavage'] = now;
+  } else if (statut == 'Terminé') {
+    data['finLavage'] = now;
   }
+
+  await _db.collection('lavages').doc(id).update(data);
+}
 
   Future<void> modifierLavage(String id, Map<String, dynamic> data) async {
     await _db.collection('lavages').doc(id).update(data);

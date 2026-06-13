@@ -1123,12 +1123,31 @@ class _LavageCard extends StatelessWidget {
                             color: accentColor)),
                     const SizedBox(height: 4),
                     Text(
-                      '${lavage.dateHeure.hour}:${lavage.dateHeure.minute.toString().padLeft(2, '0')}',
-                      style: TextStyle(
-                          color:
-                              Colors.white.withValues(alpha: 0.4),
-                          fontSize: 12),
-                    ),
+  '${lavage.dateHeure.hour}:${lavage.dateHeure.minute.toString().padLeft(2, '0')}',
+  style: TextStyle(
+      color: Colors.white.withValues(alpha: 0.4),
+      fontSize: 12),
+),
+if (lavage.dureeLavageMinutes != null)
+  Container(
+    margin: const EdgeInsets.only(top: 4),
+    padding: const EdgeInsets.symmetric(
+        horizontal: 6, vertical: 2),
+    decoration: BoxDecoration(
+      color: const Color(0xFF3B6D11).withValues(alpha: 0.2),
+      borderRadius: BorderRadius.circular(6),
+      border: Border.all(
+          color: const Color(0xFF3B6D11)
+              .withValues(alpha: 0.4)),
+    ),
+    child: Text(
+      '${lavage.dureeLavageMinutes} min',
+      style: const TextStyle(
+          color: Color(0xFF4ade80),
+          fontSize: 11,
+          fontWeight: FontWeight.w600),
+    ),
+  ),
                   ],
                 ),
               ],

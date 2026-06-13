@@ -12,6 +12,8 @@ class Lavage {
   final DateTime dateHeure;
   final DateTime? dateRDV;
   final String heureRDV;
+  final DateTime? debutLavage;   // quand statut passe à "En cours"
+  final DateTime? finLavage;     // quand statut passe à "Terminé"
 
   Lavage({
     required this.id,
@@ -27,7 +29,15 @@ class Lavage {
     this.typeAccueil = 'Présentiel',
     this.dateRDV,
     this.heureRDV = '',
+    this.debutLavage,
+    this.finLavage,
   });
+
+  // Durée du lavage en minutes
+  int? get dureeLavageMinutes {
+    if (debutLavage == null || finLavage == null) return null;
+    return finLavage!.difference(debutLavage!).inMinutes;
+  }
 
   Map<String, dynamic> toMap() {
     return {
@@ -43,6 +53,8 @@ class Lavage {
       'dateHeure': dateHeure.toIso8601String(),
       'dateRDV': dateRDV?.toIso8601String(),
       'heureRDV': heureRDV,
+      'debutLavage': debutLavage?.toIso8601String(),
+      'finLavage': finLavage?.toIso8601String(),
     };
   }
 
@@ -63,6 +75,12 @@ class Lavage {
           ? DateTime.parse(map['dateRDV'])
           : null,
       heureRDV: map['heureRDV'] ?? '',
+      debutLavage: map['debutLavage'] != null
+          ? DateTime.parse(map['debutLavage'])
+          : null,
+      finLavage: map['finLavage'] != null
+          ? DateTime.parse(map['finLavage'])
+          : null,
     );
   }
 }

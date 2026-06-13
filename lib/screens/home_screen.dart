@@ -98,7 +98,7 @@ class HomeScreen extends StatelessWidget {
   crossAxisCount: 2,
   crossAxisSpacing: 10,
   mainAxisSpacing: 10,
-  childAspectRatio: 1.8,
+  childAspectRatio: 3.5,
   shrinkWrap: true,
   physics: const ScrollPhysics(),
   children: [
@@ -106,28 +106,28 @@ class HomeScreen extends StatelessWidget {
   titre: 'Enregistrement',
   sousTitre: 'Nouveaux lavages',
   icon: Icons.add_circle_outline_rounded,
-  couleur: const Color(0xFF06b6d4),  // Cyan/Teal
+  couleur: const Color(0xFF06b6d4),
   onTap: () => onNavigate(1),
 ),
 _SectionBubble(
   titre: 'Tableau de bord',
   sousTitre: 'Stats & historique',
   icon: Icons.dashboard_rounded,
-  couleur: const Color(0xFF34d399),  // Émeraude
+  couleur: const Color(0xFF34d399),
   onTap: () => onNavigate(2),
 ),
 _SectionBubble(
-  titre: 'Laveurs',
-  sousTitre: 'Employés & paie',
+  titre: 'Laveur',
+  sousTitre: 'Gestion des laveurs',
   icon: Icons.people_rounded,
-  couleur: const Color(0xFFfbbf24),  // Ambre/Or
+  couleur: const Color(0xFFfbbf24),
   onTap: () => onNavigate(3),
 ),
 _SectionBubble(
   titre: 'À propos',
-  sousTitre: 'Version 1.0.0',
+  sousTitre: 'Informations & version',
   icon: Icons.info_outline_rounded,
-  couleur: const Color(0xFFa78bfa),  // Violet
+  couleur: const Color(0xFFa78bfa),
   onTap: () => _showAPropos(context),
 ),
   ],
@@ -234,78 +234,91 @@ class _SectionBubbleState extends State<_SectionBubble>
           child: child,
         ),
         child: Container(
-          decoration: BoxDecoration(
-            color: widget.couleur.withValues(alpha: 0.12),
-            borderRadius: BorderRadius.circular(18),
-            border: Border.all(
-              color: widget.couleur.withValues(alpha: 0.35),
-              width: 1.5,
+  decoration: BoxDecoration(
+    gradient: LinearGradient(
+      begin: Alignment.topLeft,
+      end: Alignment.bottomRight,
+      colors: [
+        widget.couleur.withValues(alpha: 0.85),
+        widget.couleur.withValues(alpha: 0.55),
+      ],
+    ),
+    borderRadius: BorderRadius.circular(18),
+    border: Border.all(
+      color: widget.couleur.withValues(alpha: 0.4),
+      width: 1.5,
+    ),
+  ),
+  child: ClipRRect(
+    borderRadius: BorderRadius.circular(18),
+    child: Stack(
+      children: [
+        // Grand cercle décoratif en haut à droite
+        Positioned(
+          top: -20, right: -20,
+          child: Container(
+            width: 110, height: 110,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: Colors.white.withValues(alpha: 0.15),
             ),
-            boxShadow: [
-              BoxShadow(
-                color: widget.couleur.withValues(alpha: 0.15),
-                blurRadius: 12,
-                offset: const Offset(0, 4),
+          ),
+        ),
+        // Petit cercle en bas à gauche
+        Positioned(
+          bottom: -10, left: -10,
+          child: Container(
+            width: 60, height: 60,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: Colors.white.withValues(alpha: 0.08),
+            ),
+          ),
+        ),
+        // Contenu
+        Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              // Icône
+              Container(
+                width: 44, height: 44,
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.2),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(widget.icon,
+                    color: Colors.white, size: 22),
+              ),
+              // Texte
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(widget.titre,
+                      style: const TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.white,
+                      )),
+                  const SizedBox(height: 2),
+                  Text(widget.sousTitre,
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: Colors.white.withValues(alpha: 0.75),
+                      )),
+                ],
               ),
             ],
           ),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(18),
-            child: Stack(
-              children: [
-                Positioned(
-                  top: -15, right: -15,
-                  child: Container(
-                    width: 70, height: 70,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: widget.couleur.withValues(alpha: 0.08),
-                    ),
-                  ),
-                ),
-                Padding(
-  padding: const EdgeInsets.all(12),
-  child: Column(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-    children: [
-      Container(
-        width: 36, height: 36,
-        decoration: BoxDecoration(
-          color: widget.couleur.withValues(alpha: 0.2),
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(
-            color: widget.couleur.withValues(alpha: 0.4),
-            width: 1,
-          ),
         ),
-        child: Icon(widget.icon, color: widget.couleur, size: 18),
-      ),
-      Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(widget.titre,
-              style: const TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w700,
-                color: Colors.white,
-              )),
-          Text(widget.sousTitre,
-              style: TextStyle(
-                fontSize: 10,
-                color: Colors.white.withValues(alpha: 0.55),
-              )),
-        ],
-      ),
-    ],
+      ],
+    ),
   ),
 ),
-              ],
             ),
-          ),
-        ),
-      ),
-    );
+          );
   }
 }
 
